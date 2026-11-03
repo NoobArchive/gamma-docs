@@ -39,6 +39,33 @@ PatcherRes.dll
 ShellClient.exe
 ```
 
+### /data
+
+当前样本版本:`release_test/version.inf` = `0.9.12.31`(`release` 与
+`release_test` 的 `ShellClient.exe` / `GammaCommon2.dll` 哈希相同)。
+
+```
+config.pkg      88,527,989   v1  10002 项
+dictionary.pkg     241,454   v0      1 项
+font.pkg        20,549,620   v0      2 项
+fx.pkg          70,897,443   v0   5310 项
+gui.pkg         27,135,916   v0    677 项
+map.pkg        495,218,746   v0  66330 项
+mapnpc.pkg       1,477,038   v0    172 项
+mat.pkg              8,835   v0     67 项
+misc.pkg         4,226,034   v1    429 项
+music.pkg       35,143,259   v0     29 项
+obj.pkg          8,214,240   v0    599 项
+pet.pkg         15,211,022   v0   1091 项
+role.pkg       178,303,293   v0   6165 项
+shader.pkg          57,464   v1      5 项
+sound.pkg       59,533,247   v0    365 项
+```
+
+共 15 个包、**91,244** 条记录。`.pkg` 是 Windows 端独有的容器,
+手游使用的 `.r` + filelist 不是同一种东西;完整格式见
+[`docs/formats/win32/pkg.md`](../../formats/win32/pkg.md)。
+
 ### /etc
 ```
 directory.xml
@@ -47,3 +74,44 @@ gac_config.xml
 directory.xml 和 gac_config.xml 在后续基于 Gamma 引擎的游戏中也得到使用。
 
 直到《粉刷匠大作战》将 gac_config.xml 改名为 client_config.xml
+
+## 资源包线索(2026-11)
+
+- 加载器在 `GammaCommon2.dll`:`sub_1000A120` 读 `pckg` 头/索引,
+  `sub_1000A9B0` 负责“虚拟路径 → 包名 + 成员路径”的拆分,
+  `sub_1000D850` 做路径规范化并调用 `GammaHash`。
+- `.pkg` 本身**不压缩**;`version==1` 的 `config/misc/shader` 只对数据区做
+  16 字节位置相关 XOR,密钥 `E7 9B 9B 9C 4E D6 44 50 B3 53 8D F1 38 CC CE A9`,
+  偏移按 `.pkg` 绝对文件偏移取模 16。索引和头部是明文。
+- 索引项 20 字节:`nameHash / headerSize / dataOffset / dataSize / reserved`。
+  `headerSize` 等于 `CCommonFileHead`(deps+extra)总长,裸文件为 0;
+  本作 22,591 个带头文件全部精确对上,68,653 个裸文件为 0。
+- **没有文件名表**:索引里只有 32-bit `GammaHash(小写化成员路径)`。
+  同一个逻辑文件在包里叫 `包名/成员路径`,例如
+  `font/msyh.ttf` → `font.pkg` 的 `msyh.ttf`;
+  `misc/ShellClient/PlayerBasicInfo.lua` → `misc.pkg` 的
+  `ShellClient/PlayerBasicInfo.lua`。
+- 已用导出函数 `?GammaHash@Gamma@@YAIPBXI@Z` 对拍哈希实现(40 组随机字节串全一致),
+  并用 `font.xml`、`msyh.ttf`、Lua 源路径等实际命中验证了路径拆分规则。
+- `misc.pkg` 的尾部 dead table 有 60 字节未被头部 `deadCount` 覆盖,
+  客户端不读该表,不影响解包;推测是补丁追加后未回写计数。
+
+包内容(按 4CC/魔数统计,详见解包 manifest):
+
+| 包 | 主要类型 |
+|---|---|
+| `config.pkg` | 360 Lua 字节码、108 XML、231 UTF-16 文本、9,303 个私有二进制配置表 |
+| `misc.pkg` | 422 Lua 字节码、3 XML、4 其它 |
+| `fx.pkg` | 2,206 `.eft`、2,355 `.tex`、475 `.ams`、152 `.anf`、116 `.ans` |
+| `gui.pkg` | 581 `.gui`、59 `.tex`、35 个 RIFF 光标/动画 |
+| `map.pkg` | 576 `.map`、3,499 `.ams`、4,029 `.tex`、235 `.anf`、214 `.ans`、57,777 个裸地形块 |
+| `role.pkg` | 818 `.ams`、2,983 `.anf`、404 `.ans`、1,954 `.tex` |
+| `obj.pkg` | 211 `.ams`、160 `.anf`、73 `.ans`、155 `.tex` |
+| `pet.pkg` | 91 `.ams`、854 `.anf`、31 `.ans`、115 `.tex` |
+| `sound.pkg` | 362 WAV、1 MP3 |
+| `music.pkg` | 29 MP3 |
+| 其余 | `font.pkg` 2 TTF、`dictionary.pkg` 1 UTF-16 词典、`shader.pkg` 5 `.gfx`、`mat.pkg` 67 `.mtr`、`mapnpc.pkg` 172 个模型/动画/贴图 |
+
+`config.pkg` 里还有 9,303 个私有二进制配置表(常见首 dword `0x1B` /
+`0xFFFFFFFF` / `0x2C`),以及 `map.pkg` 的 57,777 个 `0x0C` 开头裸地形块;
+它们不是 `CCommonFileHead`,本轮未展开。

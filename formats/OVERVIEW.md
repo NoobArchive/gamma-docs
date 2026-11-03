@@ -11,8 +11,13 @@
 - `.tex`:[tex.md](tex.md)
 - `.r`/filelist:[package.md](package.md)
 - 模型/骨架/动画:[ams.md](ams.md)、[ans.md](ans.md)、[anf.md](anf.md)
-- UI/特效/材质/皮肤:[gui.md](gui.md)、[eft.md](eft.md)、[mtr.md](mtr.md)、[male.eqp.md](male.eqp.md)、[skins.md](skins.md)
+- UI/特效/材质/皮肤:[gui.md](gui.md)、[eft.md](eft.md)、[mtr.md](mtr.md)、[male.eqp.md](male.eqp.md)、[skins.md](../features/skins.md)
 - 历史线索:[legacy-notes.md](legacy-notes.md)
+
+Windows 端(《古域2》)独有容器:
+
+- `.pkg`:[win32/pkg.md](win32/pkg.md) — 头部 + 尾部索引,`pckg`,v1 位置 XOR,文件名仅哈希;
+- `.gmz`:[win32/gmz.md](win32/gmz.md) — 更新增量包,待解。
 
 
 统计来源:`_agent-sandbox/gx_dump`(1.3.3 全量解包)。
