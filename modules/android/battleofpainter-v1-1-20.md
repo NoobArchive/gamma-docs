@@ -32,7 +32,8 @@
 
 ## 脚本层
 
-- 这是第一个真正带完整 Lua UI 的公开包：`misc/` 下 32 个 `.r`，
+- 这一版本与 1.1.19 等二测版本意外以原始资源（未打包成 .r） 将 Lua 打入了 APK 包体
+- Lua：`misc/` 下 32 个 `.r`，
   对应 `assets/lua/` 里 103 个 `.lua` 源文件。
 - `CGameClient.lua` 用 `ClassCast` 把原生对象换成 Lua 类：
   `CGameStartLua` / `CGameMainLua` / `CGameSceneClientLua` / `CPlayerClientLua`；
@@ -41,6 +42,6 @@
 - 时间戳：`CGameStartLua.lua` / `CGameMainLua.lua` / `CGameSceneClientLua.lua`
   头部都是 `--Date 2017-08-05`；`CGameClient.lua` 保留 `2015-12-07` 的老框架。
 
-> 反过来的边界：上一个 1.1.6.6 (2017-07-27) 完全没有 `misc/`，连 Lua 加载入口都没有；
+> 反过来的边界： 1.1.6.6 (2017-07-27) 完全没有 `misc/`，连 Lua 加载入口都没有；
 > 详见 [battleofpainter-v1-1-6-6.md](battleofpainter-v1-1-6-6.md) 与
 > [common.md](common.md) 的脚本层时间线。
