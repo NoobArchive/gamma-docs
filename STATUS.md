@@ -131,6 +131,10 @@
 - 旧版预览必须用**本版本自己的** `gui/tex` 转出的 atlas。1.1.6.6 的
   `tcs_jm002.tex` 在包内缺失(2 个 GUI 引用),1.1.20 的 `tcs_jm001.tex`
   缺失(1 个 GUI 引用);这是包内数据缺失,不是跨版本 atlas 混用可以修正的。
+- **脚本层边界**:1.1.6.6 与《贪吃蛇乐园》200.0.0 没有任何 Lua 脚本,连
+  `AsyncRequire("GameClientLoader")` 加载指纹都没有;客户端逻辑(包括 UI)
+  全在 `libShellClient.so`。1.1.6.10 起才挂 Lua bootstrap,1.1.20 起 UI
+  才真正脚本化。详见 [android/common.md](modules/android/common.md)。
 
 ## 2. 已知未解问题(按优先级)
 

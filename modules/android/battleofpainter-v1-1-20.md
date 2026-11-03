@@ -29,3 +29,18 @@
   `skins` 导出 31 个已登记皮肤 + 8 个 model-only。
 - UI 必须用本版本的 `gui/tex` atlas。
 - `tcs_jm001.tex` 缺失(1 个 GUI 引用),属于包内资源缺失。
+
+## 脚本层
+
+- 这是第一个真正带完整 Lua UI 的公开包：`misc/` 下 32 个 `.r`，
+  对应 `assets/lua/` 里 103 个 `.lua` 源文件。
+- `CGameClient.lua` 用 `ClassCast` 把原生对象换成 Lua 类：
+  `CGameStartLua` / `CGameMainLua` / `CGameSceneClientLua` / `CPlayerClientLua`；
+  Lua 类先调用原生 `CGameStart.Ctor` / `CGameMain.OnCreated`，再追加 UI 逻辑。
+- 因此核心战斗/场景/玩家仍是 `libShellClient.so` 里的 C++；Lua 是 UI/网络/活动胶水。
+- 时间戳：`CGameStartLua.lua` / `CGameMainLua.lua` / `CGameSceneClientLua.lua`
+  头部都是 `--Date 2017-08-05`；`CGameClient.lua` 保留 `2015-12-07` 的老框架。
+
+> 反过来的边界：上一个 1.1.6.6 (2017-07-27) 完全没有 `misc/`，连 Lua 加载入口都没有；
+> 详见 [battleofpainter-v1-1-6-6.md](battleofpainter-v1-1-6-6.md) 与
+> [common.md](common.md) 的脚本层时间线。
