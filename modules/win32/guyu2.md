@@ -115,3 +115,20 @@ directory.xml 和 gac_config.xml 在后续基于 Gamma 引擎的游戏中也得�
 `config.pkg` 里还有 9,303 个私有二进制配置表(常见首 dword `0x1B` /
 `0xFFFFFFFF` / `0x2C`),以及 `map.pkg` 的 57,777 个 `0x0C` 开头裸地形块;
 它们不是 `CCommonFileHead`,本轮未展开。
+
+## 格式转换探测(2026-11)
+
+目录:`_agent-sandbox-guyu261103/guyu2_pkg_unpack`(91,260 文件 / ~1 GB)。
+详细记录见 [`_agent-sandbox-guyu261103/GAMMA_TOOL_PROBE.md`](../../../../_agent-sandbox-guyu261103/GAMMA_TOOL_PROBE.md)。
+
+- `.ans` / `.anf` / `.eft`:旧版本样本可直接解析;
+- `.tex`:公共头可识别,但旧版 index/header 与 1.3.3 不同;
+  format 1(DXT5)与 format 3(RGBA8)样本已成功解码,输出在
+  `_agent-sandbox-guyu261103/out_tex_probe/`;
+- `.tex` 的旧数据还存在自定义 RLE 压缩(`GammaGraphic.dll` 的
+  `sub_100501D0`),format 0 的直接 BC1 解码仍是噪声;
+- `.ams`:extra 元数据能读,但旧 piece 主数据布局未对齐,GLB 仍失败;
+- `.gui`:0x2714 使用 UTF-16 字符串,但 child/state 旧布局尚未对齐;
+- `.mtr`:0x2712/0x2713 的 extra 读取仍不精确。
+
+因此古域2目前只能算“格式识别 + 部分纹理样本转换”,还不是完整转换链路。
