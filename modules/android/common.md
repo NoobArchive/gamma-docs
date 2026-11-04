@@ -1,10 +1,35 @@
 # 共同模块: Android 手游
 
-## 编译偏好：Thumb
+## 编译偏好：ARM Thumb
 
 通常会使用许多 Thumb 代码，需要小心
 
-## 脚本层：Lua 可用、AS3 硬禁用
+## 脚本层
+
+### AS3
+
+《全民猎妖》《雷霆射击》等 Gamma 手游
+
+即便如此，《全民猎妖》《雷霆射击》等仍然在 /misc 下存有 Lua 脚本
+
+需要研究： `DeltaXCpp.swf` 是什么
+
+```xml title="/etc/gac_config.xml"
+	<!-- 全民猎妖 -->
+	<!-- 脚本库类型 -->
+	<Script>as3</Script>
+
+	<!-- swf路径 -->
+	<SWF Path = "bin/release/" />
+```
+
+- 全民猎妖 `/bin/release/Main_506eba435379e9d5dcc74fdc949e0942_0.0.45.1.swf`
+
+
+### Lua
+《爆彩童话》《贪吃蛇乐园》《粉刷匠大作战》等
+
+AS3 硬禁用
 
 Gamma 的 `Gamma::CScript` 只认 `EScriptVM` 的两个值：
 
@@ -49,7 +74,7 @@ function CGameMainLua:OnCreated()
 end
 ```
 
-所以即使 1.1.20+ 有 Lua，核心场景、玩家、庄园、碰撞、渲染仍是 C++；
+所以即使 1.1.7.1+ 有 Lua，核心场景、玩家、庄园、碰撞、渲染仍是 C++；
 Lua 负责 UI、网络、活动、配置胶水。
 
 ### 版本时间线
@@ -59,8 +84,8 @@ Lua 负责 UI、网络、活动、配置胶水。
 | 贪吃蛇乐园 200.0.0 | 无 | 无 | 本地纯 Native；`gac_config.xml` 虽写 `<Script>lua</Script>`，但没有脚本/加载器 |
 | 粉刷匠 1.1.6.6 (2017-07-27) | 无 | 无 | 纯 Native；`client_config.xml` 没有 `SearchPathProgrammer` |
 | 粉刷匠 1.1.6.10 (2017-08-04) | `misc/` 5 个 `.lua` + 2 个 `.luaproj` | 有 | 开始挂 Lua；但 `CGameClient:OnStart` 只 `print`，UI 仍全 Native |
-| 粉刷匠 1.1.20 (2017-11-22) | 32 个 `.r`（103 个 `.lua` 源文件） | 有 | Lua UI 真正上线（`CGameStartLua`/`CGameMainLua`，2017-08-05） |
-| 粉刷匠 1.3.3 | 176 个 `.lua` | 有 | Lua UI 继续扩展；C++ 核心仍在 |
+| 粉刷匠 1.1.20 (2017-11-22) | 32 个 `.r`（103 个 `.lua` 源文件） | 有 | （`CGameStartLua`/`CGameMainLua`，2017-08-05） |
+| 粉刷匠 1.3.3 (2018-05-18) | 176 个 `.lua` | 有 | Lua UI 继续扩展；C++ 核心仍在 |
 
 > 1.1.6.10 的占位脚本头部日期是 2015-12-07（来自更早的 15a_Snake 模板）；
 > 真正的 Lua UI 类从 2017-08-05 开始写。这解释了 1.1.6.6 为什么完全没有脚本。
