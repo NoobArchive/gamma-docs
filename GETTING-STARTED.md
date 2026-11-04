@@ -2,6 +2,10 @@
 
 > 目标读者:拿到一个已解压的 Gamma APK,想把资源解包、转换、再打包回去。
 > 数据基准:`V3-1.3.3`(`Rhythm Painters` 只是单机魔改版,不作为格式依据)。
+>
+> 2026-11 起后端已迁入 `gammaray-py/src/deltaxutils/`(原 `gamma_formats.py` /
+> `gamma_models.py`)。新流程优先用 `gammaray`;下文旧 CLI 命令仍可作为
+> DeltaXUtils 直接调用示例。
 
 ## 0. 准备
 

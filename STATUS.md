@@ -85,7 +85,7 @@
 | | 内容 |
 |---|---|
 | 已实现 | 完整窗口树、`src/dst`、UV 环绕、**负宽/负高翻转**、**`f` 旋转**、**`k` ARGB 染色**、**`f[0]` style 对齐**、**`i[]` 字号/行间距**、**CGRichWnd 自动换行**、**同矩形状态备选选择**、本地化字典取词、**`u2/u3` 周期平铺**、**`u1 bit3` 纯色块**、**`SChildImageList.b` 文本颜色**、**`c` 1px 描边近似** |
-| 覆盖 | 结构 **213/213** 精确闭合; 10658 个 state(可见绘制 8467 + 纯色 35, 1445 环绕, 2979 翻转, 10 旋转), 975 段文字; 213 张预览图 |
+| 覆盖 | 结构 **213/213** 精确闭合; 10658 个 state(可见绘制 8434 + 纯色 35, 1445 环绕, 2979 翻转, 10 旋转), 1054 段文字; 213 张预览图 |
 | 缺陷 | ① `u[0]`/`u[1]` 的 `0x40`/`u5` 高 16 位未定; ② 文本描边 `c` 目前是 1px 八向近似,font shader 的精确混合未验证; ③ 状态代表依赖运行时(段位/wifi 格数); ④ 列表项/玩家数据是 Lua 动态创建 |
 | 思路 | ① 用 Lua 的 `ShowWnd`/状态值精确选子树; ② 读 `config/resource/*.txt` 补动态内容; ③ 有真机截图时校准描边宽度 |
 
@@ -206,13 +206,14 @@
 
 | 工具 | 作用 |
 |---|---|
-| `gamma_formats.py tex-*` / `unpack` / `r-*` / `fl-*` | 贴图与容器 |
-| `gamma_formats.py eqp` / `skins` | 皮肤部件 + 权威皮肤表 |
-| `gamma_formats.py gui-info` / `gui-render` / `gui-batch` | UI 结构与预览 |
-| `gamma_formats.py eft-info` / `eft-tex` / `eft-preview` | 特效结构(逐 unit 字段/语义)/贴图表/结构预览卡 |
-| `gamma_formats.py mtr-info` | 材质 extra、alphaMode、doubleSided |
-| `gamma_models.py ams2glb` / `anf-info` / `anf-table` | 模型/骨架/动画(自动读 `.mtr`;kc 事件表) |
-| `skin_sheet.py` | 皮肤 3D 缩略图与皮肤页拼图 |
+| `gammaray unpack/convert/pack/info` | GammaRay 前端统一入口 |
+| `deltaxutils/gamma_formats.py tex-*` / `unpack` / `r-*` / `fl-*` | 贴图与容器 |
+| `deltaxutils/gamma_formats.py eqp` / `skins` | 皮肤部件 + 权威皮肤表 |
+| `deltaxutils/gamma_formats.py gui-info` / `gui-render` / `gui-batch` | UI 结构与预览 |
+| `deltaxutils/gamma_formats.py eft-info` / `eft-tex` / `eft-preview` | 特效结构(逐 unit 字段/语义)/贴图表/结构预览卡 |
+| `deltaxutils/gamma_formats.py mtr-info` | 材质 extra、alphaMode、doubleSided |
+| `deltaxutils/gamma_models.py ams2glb` / `anf-info` / `anf-table` | 模型/骨架/动画(自动读 `.mtr`;kc 事件表) |
+| `deltaxutils/skin_sheet.py` | 皮肤 3D 缩略图与皮肤页拼图 |
 
 产物目录:
 

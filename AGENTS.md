@@ -2,6 +2,18 @@ Agent 提交身份`re0-dev <me@mizukoud.icu>`
 
 Git commit 消息遵循类似 feat(foo): new blah blah 等常规整洁格式，不要 AI slop 流水账
 
+IDA Pro 9.4 & IDA MCP 可用
+
+## 重要目录
+
+游戏目录主要二进制程序代码往往随附 IDA IDB，如果没有请自行在相应目录直接创建
+
+- `"D:\粉刷匠大作战\2608新的逆向计划！\_agent-sandbox\gx_dump"` 粉刷匠大作战 v1.3.3(.4.7) 解包资源
+- `"D:\粉刷匠大作战\2608新的逆向计划！\旧版本\"` - 粉刷匠大作战历史版本
+- `"D:\粉刷匠大作战\2608新的逆向计划！\别的游戏\"` - 其他 Gamma 手游包体
+- `D:\game\guyu2` - 古域2 游戏目录
+- 用户指定的沙盒临时目录
+
 ## 关于 ultra_say_filter.txt
 很显然，不法分子会盯上游戏作为宣传渠道。
 

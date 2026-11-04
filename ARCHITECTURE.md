@@ -9,10 +9,10 @@
 
 | 文件 | 体量 | 内容 |
 |---|---:|---|
-| `gamma_formats.py` | ~100 KB | `CCommonFileHead`、`.tex`、`.r`/filelist、`.eqp`、`.gui`、`.eft`、`.mtr`、全部 CLI |
-| `gamma_models.py` | ~42 KB | `.ams`/`.ans`/`.anf` 解析、GLB 写出、模型 CLI |
-| `skin_sheet.py` | ~12 KB | GLB 软件光栅化、皮肤缩略图/皮肤页 |
-| `gammaray-py/` | 空壳 | 只有 README/todo,尚无实现 |
+| `gammaray-py/src/deltaxutils/gamma_formats.py` | ~112 KB | `CCommonFileHead`、`.tex`、`.r`/filelist、`.eqp`、`.gui`、`.eft`、`.mtr`、全部底层 CLI |
+| `gammaray-py/src/deltaxutils/gamma_models.py` | ~44 KB | `.ams`/`.ans`/`.anf` 解析、GLB 写出、模型 CLI |
+| `gammaray-py/src/deltaxutils/skin_sheet.py` | ~12 KB | GLB 软件光栅化、皮肤缩略图/皮肤页 |
+| `gammaray-py/src/gammaray/` | 前端 | `unpack` / `convert` / `pack` / `info` 统一工作流 |
 
 ### 已能做的事
 
@@ -142,12 +142,13 @@ out/converted/
 1. **补文档**（已做）:
    `docs/formats/common.md`、`tex.md`、`package.md`;
    `FORMAT-NOTES.md` 改为迁移指针。
-2. **建 `gammaray` 包 + 兼容层**:
-   `gammaray-py` 里先 `legacy.py` 把 `Gamma引擎相关` 加进 `sys.path`,
-   import 现有 `gamma_formats` / `gamma_models`;实现 `unpack`、`convert`、`pack`。
-3. **逐步搬模块**:
-   先搬 `common/package/tex`(依赖少),再搬 `ams/ans/anf/glb`,最后 `gui/eft/mtr`。
-   每搬一块,让旧脚本改为 `from gammaray.xxx import ...`,行为不变。
+2. **建 `gammaray` 前端 + DeltaXUtils**（已做第一版）:
+   `gammaray-py/src/deltaxutils/` 收纳原 `gamma_formats.py` / `gamma_models.py`
+   与皮肤/打包工具;`gammaray/legacy.py` 直接导入 `deltaxutils`,
+   前端只保留 `unpack` / `convert` / `pack` / `info` 工作流。
+3. **逐步拆 DeltaXUtils 模块**:
+   先拆 `common/package/tex`(依赖少),再拆 `ams/ans/anf/glb`,最后 `gui/eft/mtr`;
+   前端不直接依赖大文件内部实现。
 4. **旧 CLI 兼容**:
    `gamma_formats.py` / `gamma_models.py` 保留同名命令,内部转调 `gammaray.cli`,
    并在 `--help` 里提示新入口。
@@ -164,7 +165,7 @@ out/converted/
   `common.md`、`tex.md`、`package.md`、`legacy-notes.md`;
 - `FORMAT-NOTES.md`:改为“已迁移”指针(内容进入 docs/formats);
 - `gammaray-py`:已实现可运行的 `unpack` / `convert` / `pack` / `info`;
-  `convert` 已实测 tex / models / ui / mat;模块搬迁按上面的阶段继续。
+  后端已迁入 `src/deltaxutils/`,`convert` 已实测 tex / models / ui / mat/fx。
 
 > 不应把“所有格式都搬完”作为第一版目标;
 > 第一版的价值是**一个入口 + 一条可重复的转换管线**。

@@ -47,7 +47,8 @@ version > 0x2718:  u32 len + len 字节 UTF-8
 u32 nameLen + UTF-8        窗口类名(CGWnd / CGButton / CGCheckButton / CGRichWnd / …)
 u32 nameLen + UTF-8        窗口名(运行时用名字查找/引用)
 
-u32 ×5                     f[0..4]:  f[1..4] = x, y, w, h(窗口矩形, 父坐标系)
+u32 + i32 ×4                f[0..4]: f[0]=style(u32),f[1..4]=x,y,w,h(**有符号 int32**,父坐标系)
+                           负 x/y 是合法的左侧/屏幕外锚点,不能按 u32 解
 u32 ×2                     g[0..1](version > 0x2711)
 u32                         h        (常用 0xFFFFFFFF)
 str                         skin     (皮肤/主题名, 常见 "default"/"微信号")
@@ -92,6 +93,9 @@ u32 childCount
 
 ## 3. 语义要点
 
+- **窗口 `f[1..4]` 是有符号 int32**,不是 u32。负 x/y 常见于贴边/屏幕外锚点
+  (如 `fsj_denglu` 的 `paihangbang` 是 `x=-1`);按 u32 解会变成 42 亿并导致
+  控件被当成越界而重置到左上角。
 - `state.src` / `state.dst` 都是 `(l, t, r, b)` 而不是 `(x, y, w, h)`;
   宽度 = `r-l`。9-slice 的九块就是九个 state(角/边/中心),`dst` 尺寸与 `src` 不同时拉伸。
 - `state.texIndex` 指向 `.gui` 头部的 `tex` 依赖(常见 2 张:占位 + 真正的图集)。
@@ -196,8 +200,8 @@ uv run --with pillow python gamma_formats.py gui-batch <gui目录> <输出目录
 覆盖情况(213 个 `.gui`,2026-11 最新一轮):
 
 ```
-state 总数 10658;可见绘制 8467,另 35 个纯色块;1445 个 UV 越界循环、
-2979 个翻转、10 个旋转、975 段本地化文字;940 个同矩形备选窗口被隐藏
+state 总数 10658;可见绘制 8434,另 35 个纯色块;1445 个 UV 越界循环、
+2979 个翻转、10 个旋转、1054 段本地化文字;940 个同矩形备选窗口被隐藏
 ```
 
 > 截图对齐:`login.gui` 的 SDK 状态可加
