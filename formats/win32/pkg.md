@@ -24,8 +24,8 @@
 | 0x10 | `u32` | deadCount | 尾部 dead/free 块表项数 |
 
 加载器 `sub_1000A120` 只显式读取前 16 字节,随后直接 seek 到 `indexOffset` 读索引;
-`deadCount` 与 dead 表对**客户端读取**没有作用;推测是打包器/补丁器
-用来记录可复用的死区(尚未从打包器代码证实)。
+`deadCount` 与 dead 表对**客户端读取**没有作用;`.gmz` 补丁会直接改写
+dead 表(见 [gmz.md](gmz.md)),但生成该表的原始打包器不在客户端里。
 
 数据区通常从 `0x14` 开始(紧接 0x14 字节头),但**每个 entry 的 `dataOffset` 才是权威**,
 不要假设连续。
@@ -98,9 +98,12 @@ UTF-16 词典文本(旧版本残留),只是从中间某条记录开始(旧文件
 | `misc.pkg` | 424 | 实际可解析 431 对 + 4 字节,共多出 60 字节 |
 | 其余 | 0/1/2 | — |
 
-`misc.pkg` 的 60 字节是唯一异常:头部写 424,但索引后实际有 `431 * 8 + 4` 字节;
-多出的 7 对和最后 4 字节(等于最后一个文件的 end)疑似补丁追加,未回写 `deadCount`。
-客户端不读该表,不影响解包。多数包满足:
+`misc.pkg` 的 60 字节是唯一异常,原因已从 `.gmz` 补丁链确认:
+`gycs-0.9.12.20-0.9.12.21.gmz` 对 `misc.pkg` 的 dead 表起点写入了
+**3391** 字节(`deadCount*8 = 3392`,少 1 字节),随后把文件 resize 到
+4,226,034;于是 dead 表末尾留下 1 字节缺失 + 60 字节旧数据。
+所以按头部解析会看到 `431 * 8 + 4` 字节,但只有前 424 对(或 3391 字节)
+是补丁写入的新表,后面是旧的残留。客户端不读该表,不影响解包。多数包满足:
 
 ```
 fileSize == indexOffset + count * 20 + deadCount * 8
@@ -152,7 +155,9 @@ TTF、MP3 等;高熵内容只是原始媒体/编译后的 shader,不是二次加
 - XML 里的 `FileName=` / `file=` / `groupPath=`;
 - `.ams/.ans/.anf/.mtr/.map` 的 `CCommonFileHead` 依赖名;
 - Lua 字节码里的源路径(`D:\guyu\src/game/lua/...`);
-- Lua 工程文件(`.luaproj` 的 `<Compile Include="...">`)等。
+- Lua 工程文件(`.luaproj` 的 `<Compile Include="...">`)等;
+- `.gmz` 补丁的 block 数据里也可能有旧版本/新版本资源的头与依赖名
+  (本轮用它把可读名从 12,873 提到 14,355,`shader.pkg` 5/5 全解)。
 
 成员路径可以是中文,例如 `map.pkg` 里的
 `tile/五龙/五龙植物/ani/l_f008_01.ans`;哈希只对 ASCII 字母做小写化,
@@ -284,6 +289,11 @@ def hash_path(path: str) -> int:
 `hash_path("msyh.ttf")` / `hash_path("simkai.ttf")`,
 而 `config.pkg` 的 `font.xml` 又同时引用了这两个文件名。
 
+`shader.pkg` 的 5 条记录也已全部恢复:
+`terrain.gfx` / `water.gfx` / `blurdepth.gfx` / `skeletal.gfx` / `depth2tex.gfx`
+(其中 `skeletal.gfx` 来自 `.mtr` 依赖,其余来自 `.gmz` patch block 中的
+shader 资源头/字符串)。
+
 ### 5.5 运行时查找与哈希碰撞
 
 `sub_1000A9B0` 先按成员路径哈希查 `std::map`;查不到时会把路径追加一个
@@ -340,8 +350,13 @@ for i in range(count):
 
 ## 9. 未解 / 待补
 
-- `.gmz` 补丁包的完整格式与它如何更新 `.pkg`(见 [gmz.md](gmz.md));
-- dead table 的打包器语义(为何 `misc.pkg` 多 60 字节、为何部分死区保留旧数据);
-- 全量可读文件名的恢复(`.pkg` 本身不存名字,只能靠引用/工程文件反推);
+- dead table 的**打包器**语义(客户端与 `.gmz` 的写入行为已确认,但生成
+  dead 表的原始打包器不在客户端里);
+- 全量可读文件名的恢复(`.pkg` 本身不存名字,只能靠引用/工程文件反推;
+  本轮已恢复到 14,355/91,244);
 - `version > 1` 的行为(本作未出现);
-- 哈希碰撞后缀的实际样本(本作未出现)。
+- 哈希碰撞后缀的实际样本(本作未出现;运行时逻辑已确认是追加单个
+  十六进制数字 `0..f` 重试)。
+
+`.gmz` 已解,见 [gmz.md](gmz.md);它按字节范围修改目标文件,可同时更新
+`data/*.pkg`、exe/dll 和 `version.inf`。

@@ -93,8 +93,25 @@ directory.xml 和 gac_config.xml 在后续基于 Gamma 引擎的游戏中也得�
   `ShellClient/PlayerBasicInfo.lua`。
 - 已用导出函数 `?GammaHash@Gamma@@YAIPBXI@Z` 对拍哈希实现(40 组随机字节串全一致),
   并用 `font.xml`、`msyh.ttf`、Lua 源路径等实际命中验证了路径拆分规则。
-- `misc.pkg` 的尾部 dead table 有 60 字节未被头部 `deadCount` 覆盖,
-  客户端不读该表,不影响解包;推测是补丁追加后未回写计数。
+- `misc.pkg` 的尾部 dead table 有 60 字节未被头部 `deadCount` 覆盖;
+  已确认来自 `0.9.12.20-0.9.12.21.gmz` 的 dead 表 block(写入 3391,
+  `deadCount*8=3392`,少 1 字节),客户端不读该表,不影响解包。
+
+## 补丁链
+
+`patch/` 下有 74 个 `gycs-<from>-<to>.gmz`,是 0.9.10.15 → 0.9.12.31
+的完整增量链。`.gmz` 不是 `.pkg` 容器,而是**按字节范围修改目标文件**:
+
+- 28 字节头(`gmz\0` / `0x2711` / dirCount / fileCount / usize / csize / propsSize);
+- 5 字节 LZMA1 props(`5D 00 00 00 04`,64 MiB 字典)+ 裸 LZMA1 流;
+- manifest:7 个固定目录 + 每个文件 `newFileSize` + 若干 `(offset,size,data)` 块;
+- 目标包括 `data/config.pkg`、`data/map.pkg`、`data/role.pkg`、
+  `data/misc.pkg`、`data/fx.pkg`、ShellClient/Patcher/各 Gamma DLL、
+  `version.inf` 等,共 208 个文件记录、136,890 个块。
+
+`misc.pkg` 尾部多出的 60 字节也来自补丁:`0.9.12.20-0.9.12.21.gmz`
+在 dead 表起点只写了 3391 字节(`deadCount*8=3392`),随后把文件
+resize 到 4,226,034,留下了 1 字节缺失 + 60 字节旧数据。
 
 包内容(按 4CC/魔数统计,详见解包 manifest):
 

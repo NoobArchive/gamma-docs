@@ -25,6 +25,8 @@
 
 ### `.gmz` — 更新增量包
 
-`patch/*.gmz`,文件头为 `gmz\0` + version `0x2711`;本轮只确认了它与
-`.pkg` 不是同一容器、且不能用 `.pkg` 的 XOR 密钥直接解,完整格式待补
-(见 [gmz.md](../../formats/win32/gmz.md))。
+`patch/*.gmz`,`gmz\0` + version `0x2711` + 28 字节头 + LZMA1 压缩的
+manifest。manifest 是“目录表 + 文件表”,每个文件带 `newFileSize` 和若干
+`(offset,size,data)` 二进制写入块;Patcher 按块直接改目标文件
+(`data/*.pkg`、exe/dll、`version.inf`)。74/74 个样本全部精确解析,
+详见 [gmz.md](../../formats/win32/gmz.md)。

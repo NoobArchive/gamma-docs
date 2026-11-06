@@ -1,10 +1,13 @@
 # .eqp — 皮肤/装备部件清单
 
-> **注意:`.eqp` 里内嵌的 29 个名字不是正式皮肤名**,更像开发期备注/预留文案。
+> 《爆彩童话》中得到大量使用，具有 `male.eqp`, `female.eqp`, `npc.eqp`
+> 《粉刷匠大作战》中该文件可能只是《爆彩童话》代码重复利用，并且不区分 male/female/npc，并且后续新皮肤实装过程未使用，实际上该文件可能已被弃用。
+
+> **注意: 粉刷匠项目中 `.eqp` 里内嵌的 29 个名字不是正式皮肤名**,更像开发期备注/预留文案。
 > 正式名字请看 `config/resource/equip.txt`(`dName` 字典键 + `szMark` 字面名)
 > 和 `config/dictionary/*.txt`,用 `python gamma_formats.py skins ...` 导出。
 
-记录 4CC 不是标准 `CCommonFileHead`,而是**名称列表**。实测 `role/dress/male.eqp`(4865 字节):
+记录 4CC 不是标准 `CCommonFileHead`,而是**名称列表**。实测 粉刷匠大作战 v1.3.3.4.7 `role/dress/male.eqp`(4865 字节):
 
 ```
 +0x00  12 字节头: FF FF FF FF | u32(8) | u32(4)
