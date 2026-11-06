@@ -49,3 +49,14 @@ Lua/AS3 证据：
 **结论:** 本地包不是“Lua 被藏起来了”，而是这一版客户端根本没有启用 Lua 层；
 `libShellClient.so` 同时是引擎和游戏模块，但不是把所有逻辑写成硬编码 if-else——
 `.gui` 布局和 `config/*.txt` 仍是数据驱动，解释/执行这些数据的代码是 C++。
+
+## 资源解包/转换(2026-11)
+
+- 输入:`别的游戏/贪吃蛇乐园-200.0.0-官网包/assets`
+- `filelist_200.0.0.r`:9/9 逻辑包校验通过;
+- 解包:71 个文件 / ~6 MB;
+- `.tex`:6/6,`etc-dual=4`、`etc2=1`、`raw=1`;
+- `.gui`:22/22 渲染成功,428 state、232 可见、122 段文字;
+- 产物:`_agent-sandbox-tcs261106/tcs_tex`、`tcs_ui`、`tcs_probe.md`;
+- 登录页:`_agent-sandbox-tcs261106/tcs_ui/cfg/tcs_denglu.png`;
+- 本包没有模型资源;`.map/.rgn` 地形仍待做。

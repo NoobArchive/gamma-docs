@@ -15,7 +15,7 @@
 | 多贴图 piece | “多材质分层未解” | 已确认是**配色变体**,`ams.md`/`STATUS.md` 已改 |
 | `.eft` unit | “只切段/375/376” | 已升级为 **754/754 prop、5036 unit** |
 | `.mtr` | “26B 未标定” | 已逐字段标定(0x2716=24B / 0x2717=26B);高光/自发光开关与 3 个模板遗留字节已命名 |
-| `.gui` | 数字/字段旧 | 更新 `f[0]` style、`f` 旋转、翻转、wrap、状态代表 |
+| `.gui` | 数字/字段旧 | 更新 `f[0]` style、翻转、wrap、状态代表;`state.f` 不再直接当旋转角 |
 | `.ans` 共享骨架 | `box02/03`、`p_*_a` 丢蒙皮 | 增加 `bind.ans` / `box01.ans` 回退,6 个模型恢复 skin |
 | `.anf` 帧率 | 30fps 假设 | 已由实机动作速度确认 |
 | 配置编码 | `read_text_any` 先试 UTF-16LE, UTF-8 BOM 的 `fusion.txt` 会乱码 | 先看 BOM/UTF-8,再按 NUL 比例判断 UTF-16 |
