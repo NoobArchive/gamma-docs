@@ -183,6 +183,9 @@ pack     目录 -> .r + filelist_<version>.r(默认 out/datarel-时间戳)
 - `unpack` 自动找最新的 `filelist_*.r`;APK 会解 `assets/` 到临时目录;
 - `pack` 排除根 `etc/`、`version.inf`、`filelist_*.r`;同目录累计 ≤200 KiB
   合成一个包,大文件按 200 KiB 分片;
+- `pack` 的版本号默认读根 `version.inf` 的 `[Data] Version`,
+  生成的 `filelist_<ver>.r` 与它一致,否则游戏会去找旧表;
+  打包后 `etc/` 和 `version.inf` 会原样复制到输出目录;
 - `prepare` 目前只实现 **raw BGRA**(`format=3`,storage=0,1 mip),
   PNG→TEX→PNG 像素差异 0;ATF/ETC/DXT 尚未确定;
 - gx_dump 重打对照 assets:成员 **2515/2515**、内容差异 **0**,

@@ -10,15 +10,22 @@
     - 根目录 `version.inf`;
     - 根目录 `filelist_*.r`;
     - 输出目录自身(如果在输入目录内)。
-02. 按**直接父目录**分组;同一目录下按文件名(忽略大小写)排序。
-03. 顺序累加文件,每个成员占 `4 + len(data)` 字节;累计不超过
+02. 版本号优先读根目录 `version.inf` 的 `[Data] Version = x.y.z`,
+    其次读已有的 `filelist_*.r`;两者都没有时必须显式 `--version`。
+    **filelist 名字必须和 `version.inf` 的 Version 一致**,否则游戏会去找
+    `filelist_<version.inf>.r`,新 `.r` 全部对不上。
+03. 打包完成后会把源目录的 `etc/` 和 `version.inf` **原样复制**到输出目录;
+    它们不进入 `.r`/filelist,但输出目录可以直接当作 `assets/` 使用。
+04. 按**直接父目录**分组;同一目录下按文件名(忽略大小写)排序。
+05. 顺序累加文件,每个成员占 `4 + len(data)` 字节;累计不超过
     `--limit`(默认 **204800 = 200 KiB**)时合成一个逻辑包。
-04. 单个文件自身 `4 + len` 超过 limit 时独占一个逻辑包。
-05. 逻辑包的 `.r` 流 = `[u32 len][data]` 依次拼接;
+06. 单个文件自身 `4 + len` 超过 limit 时独占一个逻辑包。
+07. 逻辑包的 `.r` 流 = `[u32 len][data]` 依次拼接;
     流长度超过 limit 时按 204800 字节切片(首片含记录头,后续片是裸数据)。
-06. 每个分片写 `<dir>/<md5>.r`;filelist 行写 `<dir>/<md5>.z`、
+08. 每个分片写 `<dir>/<md5>.r`;filelist 行写 `<dir>/<md5>.z`、
     分片实际长度、压缩尺寸估计。
-07. 成员行只在**该逻辑包所有分片之后**写一次,名字相对于包目录。
+09. 成员行只在**该逻辑包所有分片之后**写一次,名字相对于包目录。
+10. 输出目录中已有的其他 `filelist_*.r` 会被删除,避免游戏加载旧表。
 
 ## 2. filelist 的 `size` 到底是什么
 
@@ -49,8 +56,11 @@ zlib 估算,官方 `.z` 压缩器尚未确认,数值可能与官方不同。
 
 ```powershell
 python gammaray.py pack _agent-sandbox/gx_dump `
-    -o _agent-sandbox/temp-another/repack_gx --version 1.3.3.4.7
+    -o _agent-sandbox/temp-another/repack_gx
 ```
+
+版本号从 `gx_dump/version.inf` 自动读为 `1.3.3.4.7`;输出目录同时包含
+`etc/`、`version.inf` 和 `filelist_1.3.3.4.7.r`。
 
 结果:
 
