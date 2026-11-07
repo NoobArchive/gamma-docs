@@ -45,3 +45,10 @@
 > 反过来的边界： 1.1.6.6 (2017-07-27) 完全没有 `misc/`，连 Lua 加载入口都没有；
 > 详见 [battleofpainter-v1-1-6-6.md](battleofpainter-v1-1-6-6.md) 与
 > [common.md](common.md) 的脚本层时间线。
+
+## `.eqp`
+
+本版仍有 `role/dress/male.eqp`(4,861B,29 条),且与 1.3.3 的哈希完全相同;
+但 `libShellClient.so` 和 Lua 都不引用 `.eqp` / `role/dress/`,
+正式皮肤表是 `config/resource/equip.txt`。详见
+[`../../formats/eqp.md`](../../formats/eqp.md)。

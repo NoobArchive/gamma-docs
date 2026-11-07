@@ -1,6 +1,6 @@
 # 解析器现状 · 缺陷 · 后续思路
 
-> 更新: 2026-11-02
+> 更新: 2026-11-07
 > 新用户/工作流见 [GETTING-STARTED.md](GETTING-STARTED.md);
 > 工具布局/迁移见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
@@ -21,8 +21,8 @@
 
 | | 内容 |
 |---|---|
-| 已实现 | 头部/deps/索引、raw(RGBA)、DXT1/5、ETC2、双 ETC1(色彩+alpha)、mip 跳过、ATF 内嵌 JXR 抽取 |
-| 覆盖 | 792 个全部可解:788 个 PNG + `loading_1..4` 的 4 个 JPEG-XR(仅 `.jxr`); `tex-batch` 批量 |
+| 已实现 | 头部/deps/索引、raw(RGBA)、DXT1/5、ETC2、双 ETC1(色彩+alpha)、mip 跳过、ATF 内嵌 JXR 抽取、**旧版 0x2711..0x2713/0x2715 的 24B 头 + 块 RLE** |
+| 覆盖 | 792 个全部可解:788 个 PNG + `loading_1..4` 的 4 个 JPEG-XR(仅 `.jxr`); `tex-batch` 批量; **古域2 旧版 8700/8700** |
 | 缺陷 | `fmt=1` 的 JXR 负载只能抽出来(需要 jxrlib 才能转 PNG); 少数 `Compressed` 变体只写 `.bin` |
 | 思路 | JXR 用 `jxrlib`/`texconv` 转码; 或者直接取更低的 mip |
 
@@ -39,8 +39,8 @@
 
 | | 内容 |
 |---|---|
-| 已实现 | piece 解析(`u16 ? / u16 vcount / packed / skin / ic / indices`)、顶点位宽 8/9/10/11/12、`TTinyNormal`、蒙皮块、piece 包围盒 `min` 角、材质变体(配色槽) |
-| 覆盖 | `role/mod` **78/78**; `fx/mod` **59/59**(Khronos 校验 0 error / 0 warning / 0 info) |
+| 已实现 | piece 解析(`u16 ? / u16 vcount / packed / skin / ic / indices`)、顶点位宽 8/9/10/11/12、`TTinyNormal`、蒙皮块、piece 包围盒 `min` 角、材质变体(配色槽)、**旧版 per-piece 头 + `GetVertexSize` stride** |
+| 覆盖 | `role/mod` **78/78**; `fx/mod` **59/59**(Khronos 校验 0 error / 0 warning / 0 info); **古域2 0x2713/0x2714 5117/5117** |
 | 缺陷 | ① piece 贴图只取配色槽第 0 套(`--skin N` 可换); 实测 `mats` 是配色变体, 不存在多层材质 |
 | 思路 | ① 用 `CPiece::SPieceMatrl` 的 tag 还原真正的材质槽语义; ② 对缺 extra 的文件做 `CStaticPiece::ReadMainData` 的逐字段对齐 |
 
@@ -75,17 +75,18 @@
 
 | | 内容 |
 |---|---|
-| 已实现 | `male.eqp` 的 29 个部件 + 29 个备注名; **`equip.txt` 权威皮肤表**; **`fusion.txt` 18 个融合皮肤**; **未实装 `p_*` 模型** |
-| 覆盖 | `skins` 导出 66 条:equip 34 + fusion 18 + model 14 |
+| 已实现 | **`.eqp` 完整解析**(CEquipmentGroup:装备名→.ans+多 .ams 部件+特效+缩放+贴图套装);**`equip.txt` 权威皮肤表**; **`fusion.txt` 18 个融合皮肤**; **未实装 `p_*` 模型** |
+| 覆盖 | 爆彩 3 个 `.eqp` 全部恰好读完(male/female 18、npc 292 条);粉刷匠 1.1.6.6/1.1.20/1.3.3 也全部可解;`skins` 导出 66 条(equip 34 + fusion 18 + model 14) |
+| 结论 | **`.eqp` 只有爆彩在运行时使用**;粉刷匠各版本 `libShellClient.so`/Lua 都不引用 `.eqp`/`role/dress/`,1.1.20 与 1.3.3 的 `male.eqp` 哈希相同,属遗留数据 |
 | 缺陷 | 未实装 model 条目没有正式名字/图标(只有模型 stem);`nShow=0` 的商店隐藏规则仍以配置为准 |
-| 思路 | 把 `nIconID` 与 `iconconfig.txt` 联动;用 `nShow/nSort` 驱动商店模拟 |
+| 思路 | 把 `nIconID` 与 `iconconfig.txt` 联动;用 `nShow/nSort` 驱动商店模拟;爆彩可按 `.eqp` 的 `mesh_parts` 直接拼多部件角色 |
 
 ### 1.8 `.gui` UI
 
 | | 内容 |
 |---|---|
-| 已实现 | 完整窗口树、`src/dst`、UV 环绕、**负宽/负高翻转**、**`k` ARGB 染色**、**`f[0]` style 对齐**、**`i[]` 字号/行间距**、**CGRichWnd 自动换行**、**同矩形状态备选选择**、本地化字典取词、**`u2/u3` 周期平铺**、**`u1 bit3` 纯色块**、**`SChildImageList.b` 文本颜色**、**`c` 1px 描边近似** |
-| 覆盖 | 结构 **213/213** 精确闭合; 10658 个 state(可见绘制 8434 + 纯色 35, 1445 环绕, 2979 翻转), 1054 段文字; 213 张预览图 |
+| 已实现 | 完整窗口树、`src/dst`、UV 环绕、**负宽/负高翻转**、**`k` ARGB 染色**、**`f[0]` style 对齐**、**`i[]` 字号/行间距**、**CGRichWnd 自动换行**、**同矩形状态备选选择**、本地化字典取词、**`u2/u3` 周期平铺**、**`u1 bit3` 纯色块**、**`SChildImageList.b` 文本颜色**、**`c` 1px 描边近似**、**透明画布 / `--no-widget-bg`** |
+| 覆盖 | 结构 **213/213** 精确闭合; 10658 个 state(可见绘制 8434 + 纯色 35, 1445 环绕, 2979 翻转), 1054 段文字; 213 张预览图; **古域2 0x2714: 581/581, 29419 state** |
 | 缺陷 | ① `u[0]`/`u[1]` 的 `0x40`/`u5` 高 16 位未定; ② **`state.f` 不能直接当屏幕旋转角**; ③ 文本描边 `c` 目前是 1px 八向近似; ④ 状态代表依赖运行时; ⑤ 列表项/玩家数据是 Lua 动态创建 |
 | 思路 | ① 用 Lua 的 `ShowWnd`/状态值精确选子树; ② 读 `config/resource/*.txt` 补动态内容; ③ 继续确认 `f` 的真实用途 |
 
@@ -103,7 +104,7 @@
 | | 内容 |
 |---|---|
 | 已实现 | 头部/deps(`gfx/*.inl`)、**extra 26 字节逐字段**(alphaBlend/src/dest/alpharef/zTest/zWrite/cull/diffuse/factor)、`mtr-info`、**AMS→GLB 自动应用 alphaMode/doubleSided** |
-| 覆盖 | 12/12 个 `.mtr` 精确读完(0x2716 24B / 0x2717 26B) |
+| 覆盖 | 12/12 个 `.mtr` 精确读完(0x2716 24B / 0x2717 26B); **古域2 0x2712/0x2713 67/67**(旧版多 ambient/specular/emissive/power) |
 | 缺陷 | +126/+127 已识别为 specular/emissive 开关;+157/+158/+160 是 SMaterial 之外的模板遗留字段,未进入 GLB |
 | 思路 | 若以后需要还原材质预览,再把 specular/emissive 开关映射到 glTF 扩展 |
 
@@ -135,6 +136,38 @@
   `AsyncRequire("GameClientLoader")` 加载指纹都没有;客户端逻辑(包括 UI)
   全在 `libShellClient.so`。1.1.6.10 起才挂 Lua bootstrap,1.1.20 起 UI
   才真正脚本化。详见 [android/common.md](modules/android/common.md)。
+
+### 1.12 古域2 0.9.12.31 旧版格式
+
+> 版本矩阵 [version-matrix.md](../gammaray-py/docs/guyu2/formats/version-matrix.md);
+> 细节 [tex.md](../gammaray-py/docs/guyu2/formats/tex.md)、
+> [ams.md](../gammaray-py/docs/guyu2/formats/ams.md)、
+> [gui.md](../gammaray-py/docs/guyu2/formats/gui.md)、
+> [mtr.md](../gammaray-py/docs/guyu2/formats/mtr.md)。
+
+古域2 的版本号比手游低一档(0x2711..0x2714),主要差异:
+
+- `.tex`: 参数块在 **main 开头 24B**,不是 extra;`>=0x2712` 每级有
+  `u32 compressedSize`,压缩体是 **16-bit 命令的块 RLE**(`bit15` 区分
+  重复/连续);`0x2715` 地图大图另有 8B 前缀 + `[w,h,format,mip]`。
+- `.ams`: piece 主数据有 per-piece 头 `u8 flags / u32 / f32 scale /
+  u16 / u16 vcount`;stride 由 `bits=max(size)*4` 与 `scale` 经
+  `GetVertexSize` 决定;`(flags & 7) == 1` 才有 8B 蒙皮。
+- `.gui` 0x2714: UTF-16 字符串、**44B state**、list 后无 groups、
+  `windows` 只在根节点;UV 越界属正常(纹理 repeat)。
+- `.mtr` 0x2712/0x2713: 0x2712 只有 1B 着色器占位;11B flags 之后是
+  6/7 个旧材质 dword(ambient/diffuse/specular/emissive/power/factor)。
+
+| 产物 | 覆盖 |
+|---|---:|
+| `.tex → PNG` | 8700/8700 |
+| `.ams → GLB` | 5117/5117 |
+| `.gui → PNG` | 581/581 |
+| `.mtr` 精确闭合 | 67/67 |
+| `.ans/.anf/.eft` | 863/4474/2207 |
+
+仍未覆盖:`.map` 576、`.rgn` 9687+、`.skc` 743、`.tsk` 225、`.sce` 103,
+以及 2 个 `0x7000` 地图块。
 
 ## 2. 已知未解问题(按优先级)
 

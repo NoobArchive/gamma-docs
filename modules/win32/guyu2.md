@@ -136,16 +136,20 @@ resize 到 4,226,034,留下了 1 字节缺失 + 60 字节旧数据。
 ## 格式转换探测(2026-11)
 
 目录:`_agent-sandbox-guyu261103/guyu2_pkg_unpack`(91,260 文件 / ~1 GB)。
-详细记录见 [`_agent-sandbox-guyu261103/GAMMA_TOOL_PROBE.md`](../../../../_agent-sandbox-guyu261103/GAMMA_TOOL_PROBE.md)。
+详细记录见 [`gammaray-py/docs/guyu2/GAMMA_TOOL_PROBE.md`](../../../gammaray-py/docs/guyu2/GAMMA_TOOL_PROBE.md),
+版本矩阵与字段见 [`gammaray-py/docs/guyu2/formats/`](../../../gammaray-py/docs/guyu2/formats/version-matrix.md)。
 
-- `.ans` / `.anf` / `.eft`:旧版本样本可直接解析;
-- `.tex`:公共头可识别,但旧版 index/header 与 1.3.3 不同;
-  format 1(DXT5)与 format 3(RGBA8)样本已成功解码,输出在
-  `_agent-sandbox-guyu261103/out_tex_probe/`;
-- `.tex` 的旧数据还存在自定义 RLE 压缩(`GammaGraphic.dll` 的
-  `sub_100501D0`),format 0 的直接 BC1 解码仍是噪声;
-- `.ams`:extra 元数据能读,但旧 piece 主数据布局未对齐,GLB 仍失败;
-- `.gui`:0x2714 使用 UTF-16 字符串,但 child/state 旧布局尚未对齐;
-- `.mtr`:0x2712/0x2713 的 extra 读取仍不精确。
+- `.ans` 863/863、`.anf` 4474/4474、`.eft` 2207/2207 可解析;
+- `.tex`:旧版头在 main 开头(24B),`>=0x2712` 每级有 u32 长度,
+  压缩时是块 RLE;**8700/8700 转为 PNG**
+  (`out_tex_all`,DXT1 5400 / DXT5 3209 / RGBA32 58 / RGB24 23 /
+  A4R4G4B4 8 / RGB565 2);
+- `.ams`:旧 piece 主数据头 + `GetVertexSize` 算 stride;
+  **5117/5117 转为 GLB**(`out_glb_all`);
+- `.gui` 0x2714:UTF-16 字符串、44B state、根节点 windows;
+  **581/581 精确闭合并渲染**(`out_ui`);
+- `.mtr` 0x2712/0x2713:**67/67 精确闭合**,alphaMode/doubleSided 已用于 GLB;
+- `.map/.rgn/.skc/.tsk/.sce` 与 2 个 `0x7000` 地图块仍未覆盖。
 
-因此古域2目前只能算“格式识别 + 部分纹理样本转换”,还不是完整转换链路。
+古域2 现在具备完整的“纹理 + 模型 + UI + 材质”转换链路,但
+`.map/.rgn` 地形和本地化词典(`dictionary.pkg`)还不在本轮范围内。

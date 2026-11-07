@@ -1,93 +1,161 @@
-# .eqp — 皮肤/装备部件清单
+# .eqp — 装备/皮肤注册表
 
-> 《爆彩童话》中得到大量使用，具有 `male.eqp`, `female.eqp`, `npc.eqp`
-> 《粉刷匠大作战》中该文件可能只是《爆彩童话》代码重复利用，并且不区分 male/female/npc，并且后续新皮肤实装过程未使用，实际上该文件可能已被弃用。
+> 格式来自 `misc/ShellCommonLua/equip/CEquipmentGroup.lua` 的
+> `CEquipmentGroup.Parse` / `LoadEquipment`(爆彩童话 2015 版)。
+> 当前解析器:`gamma_formats.py` 的 `parse_eqp` / `eqp` 命令。
+>
+> 结论:**爆彩童话真正在用;粉刷匠大作战从 1.1.6.6 起就没有任何运行时引用。**
 
-> **注意: 粉刷匠项目中 `.eqp` 里内嵌的 29 个名字不是正式皮肤名**,更像开发期备注/预留文案。
-> 正式名字请看 `config/resource/equip.txt`(`dName` 字典键 + `szMark` 字面名)
-> 和 `config/dictionary/*.txt`,用 `python gamma_formats.py skins ...` 导出。
+## 1. 两种游戏的实际使用情况
 
-记录 4CC 不是标准 `CCommonFileHead`,而是**名称列表**。实测 粉刷匠大作战 v1.3.3.4.7 `role/dress/male.eqp`(4865 字节):
+### 爆彩童话 1.1.0.2(在用)
 
-```
-+0x00  12 字节头: FF FF FF FF | u32(8) | u32(4)
-+0x0C  "ams\0"
-+0x10  u32 count            (male = 29)
-       重复 count 次:
-           u32 charCount
-           UTF16LE name
+启动时 `misc/ShellClientLua/CGameClient.lua` 无条件执行:
+
+```lua
+CDressingRoomClient:Instance():LoadAllFromURL( g_App:GetDataPath().."role/dress/", false );
 ```
 
-`male.eqp` 解析结果(29 项):
+`CDressingRoom.s_EquipGroups = { "npc", "male", "female" }`,依次加载
+`role/dress/npc.eqp`、`male.eqp`、`female.eqp`。
 
+`m_EquipmentPackages[group][equipName]` 的用途:
+
+| 调用点 | 作用 |
+|---|---|
+| `CPlayer.lua:72` | `SetAnsFileName(GetAnsFileName(Equip[1], Equip[2], Equip[3]))` |
+| `CNpc.lua:148` / `CHero.lua:140` | NPC/英雄按 `"npc"` 组取 `.ans` |
+| `CDressingRoomClient:PutOnAll` | `ClearPiece` → 逐个 `AddPiece(mesh.ams, pieceClass, matIndex)` → `SetAni(.ans)` → 特效/缩放 |
+| `LoadAllHeroModel` | 预加载 `npc.eqp` 的 `yingxiong` 组 |
+| `CSelectFighter` / `CHeroPanelInfo` / `CCharacterPreviewWnd` | 选人、英雄面板、预览换装 |
+
+也就是说:爆彩的“装备名 → 骨架 + 多个部件 + 特效 + 缩放 + 材质/贴图变体”
+全部由 `.eqp` 决定,是**角色渲染的核心注册表**。
+
+样本规模:
+
+| 文件 | 装备数 | 分组 | ams/ans/eft 依赖 |
+|---|---:|---|---|
+| `male.eqp` | 18 | body/foot/head 各 6 | 6 / 1 / 1 |
+| `female.eqp` | 18 | body/foot/head 各 6 | 6 / 1 / 1 |
+| `npc.eqp` | 292 | boss 29, emeng 7, hero 26, npc 19, obj 33, tszdnpc 19, yingxiong 34, yingxiong_zhanshi 29, zdnpc 96 | 118 / 112 / 42 |
+
+### 粉刷匠大作战(未使用)
+
+| 版本 | `role/dress/male.eqp` | 二进制是否引用 | Lua 是否引用 | 真正用的表 |
+|---|---|---|---|---|
+| 1.1.6.6 | 2,982B, 18 装备 | 否 | 无 Lua | `config/resource/equip.txt` |
+| 1.1.20 | 4,861B, 29 装备 | 否 | 否 | `equip.txt` |
+| 1.3.3.4.7 | 与 1.1.20 **哈希相同** | 否 | 否 | `equip.txt` + `fusion.txt` |
+
+证据:
+
+- 各版本 `libShellClient.so` 里搜不到 `.eqp` / `eqp` / `DressingRoom` /
+  `EquipmentGroup` / `role/dress/`,但能搜到 `equip.txt`、`role/mod/`、`role/ani/`;
+- 1.3.3 的 `misc/ShellClientLua`、`ShellCommonLua` 没有任何 `eqp` /
+  `CDressingRoom` / `CEquipmentGroup` 引用;
+- 1.3.3 的 `equip.txt` 有 34 行、`fusion.txt` 18 行,字段直接是
+  `szModel` / `szAni` / `nMatrlIndex0..9` / `szFx0..9` / `nScale`,
+  每套皮肤一个模型,不再需要多部件注册表;
+- `male.eqp` 里的名字是旧开发名(二哈、僵尸、兔女仆、厨子张飞、大法师、
+  女粉刷匠、孙悟空……),与 1.3.3 `equip.txt` 的正式名
+  (哈士奇、蹦迪僵尸、兔酱、张飞砍咸鱼、乱棍老法师、节奏小粉酱、
+  齐天大圣……)对不上;且 eqp 只有 29 项,不含 1.3.3 后期的 18 个融合皮肤。
+
+结论:`male.eqp` 是爆彩时代/粉刷匠早期工程留下的**静态遗留数据**,
+粉刷匠从首个公开包开始就没有装载它;后续新皮肤只更新
+`equip.txt` / `fusion.txt` / `role/mod/*.ams`。
+
+## 2. 文件结构
+
+标准 `CCommonFileHead`(version = `8`),4 组依赖:
+
+```text
+deps[0] = ams   部件网格
+deps[1] = ans   骨架/动画
+deps[2] = eft   特效
+deps[3] = tex   皮肤贴图
 ```
-role/mod/p_025.ams, role/mod/p_027.ams, ... , role/mod/obj_001.ams
+
+extra 数据:
+
+```text
+u32 skinTypeCount
+per skin type:
+    u32 textureSetCount
+    per set:
+        u32 + UTF-16 setName
+        u32 skinCount
+        per skin:
+            u32 + UTF-16 className
+            u32 textureIndex          -> deps[tex]
+
+u32 equipmentCount
+per equipment:
+    u32 + UTF-16 equipName
+    u32 + UTF-16 equipGroup           // body/foot/head/npc/hero/boss...
+    u32 aniIndex                      -> deps[ans]
+    u16 figureID
+    f32 scale
+    u32 effectIndex                   -> deps[eft]
+    u32 + UTF-16 effectName           // 逻辑名,如 "fx/loop"
+    skinTypeCount × (u32 + UTF-16 decorateSetName)
+    u32 meshPartCount
+    per part:
+        u32 pieceIndex                -> deps[ams]
+        u8  materialIndex
+        u32 + UTF-16 pieceClassName   // 与 .ams extra 的 piece class 对应
+    u32 hideCount × (u32 + UTF-16 hideType)
+    u8  transparency
+    u8  hideSkin
+    u32 renderFlag
+    u32 + UTF-16 stateEffectFileName
 ```
 
-## 皮肤名表(后半段)
+古早的 `parse_eqp_names` / `parse_eqp_skins` 只是按字符串模式扫描;
+现在是完整解析,5 个样本全部“恰好读完”:
 
-`.ams` / `.ans` 依赖列表之后还有一个 **29 项的皮肤表**:
-
-```
-u32 count (=29)
-重复 count 次:
-    u32 nameLen + UTF-16   皮肤名(如 "二哈"、"兔女仆"、"厨子张飞")
-    u32 classLen + UTF-16  部件类名("body" / "obj")
-    ~59 字节元数据(首字段是 0,1,2… 序号,含 1.0f 缩放等)
-```
-
-条目长度随名字长度变化(实测 79/80 字节),所以按「名字 + 类名」模式扫描,不依赖固定 stride。
-
-实测 29 个皮肤(与 29 个部件模型按顺序 1:1 对应):
-
-```
- 0 二哈        1 僵尸        2 兔女仆      3 冲浪小子    4 厨子张飞
- 5 大法师      6 女粉刷匠    7 孙悟空      8 小黄人灯泡  9 弹簧鸡
-10 忍者       11 恐龙       12 柴犬       13 死神       14 熊猫
-15 盒子猫     16 章鱼小八   17 篮球小子   18 粉刷匠     19 粉刷匠_黄色
-20 绿帽侠     21 羊驼       22 蜘蛛侠     23 雪人       24 音波小子
-25 食人花     26 龙宝宝     27 经验盒子(obj)           28 金币(obj)
+```text
+bc male   2706/2706
+bc female 3054/3054
+bc npc   52134/52134
+fsj 1.1.6.6 male 2982/2982
+fsj 1.1.20/1.3.3 male 4861/4861
 ```
 
-配对已被画面验证(`p_001`=粉刷匠、`p_001_02`=粉刷匠_黄色、`jingyanhezi`=经验盒子、
-`obj_001`=金币)。完整名单见 `python gamma_formats.py eqp` 或 JSON 的 `skins` 数组。
+`skinTypeCount = 3`,但所有样本的 `textureSetCount = 0`,
+`decorate_sets` 也都是空串 —— 贴图变体机制存在但这两作没启用。
 
-## 用途
-
-`.eqp` 是**皮肤/角色装备的部件索引**:列出一组 `.ams` 模型,游戏按皮肤把部件组合成角色。
-与 `ams` 的依赖合并即可得到完整皮肤链路:
-
-```
-male.eqp
-  -> role/mod/p_001.ams
-       -> mtr=[mat/emissive_ccw.mtr] -> gfx/skeletal.inl
-       -> tex=[role/tex/p_001_t01.tex, ...]
-```
-
-工具:
+## 3. 工具
 
 ```powershell
-# 直接列出名字(可同时写 JSON / TXT;--root 用来检查文件是否存在)
-python gamma_formats.py eqp role/dress/male.eqp ^
-    --json male_eqp_names.json --txt male_eqp_names.txt --root <解包根目录>
-
-# 全量依赖图(.eqp + .ams)
-python gamma_formats.py deps <role_dir> role_deps.json
+# 完整解析:依赖数、分组统计、每条装备的 .ans/.ams/scale/材质
+python gamma_formats.py eqp <x.eqp> [--json out.json] [--txt out.txt] ^
+    [--root <解包根目录>] [--limit 40]
 ```
 
-`eqp` 输出示例(29/29 全部定位到文件):
+JSON 里字段与 Lua 一一对应:
 
-```
-  0  role/mod/p_025.ams  [ok]
-  ...
- 27  role/mod/jingyanhezi.ams  [ok]
- 28  role/mod/obj_001.ams  [ok]
-```
-
-`role_deps.json` 里也已经包含这份名单:
-
-```json
-{"file": "dress\\male.eqp", "type": "eqp",
- "deps": [{"tag": "ams", "names": ["role/mod/p_025.ams", "..."]}]}
+```text
+version / exact / deps.ams|ans|eft|tex
+skin_types{setName: {className: texName}}
+equipments[]:
+  name, group, ani, figure_id, scale
+  effect, effect_name, decorate_sets[]
+  mesh_parts[]: {piece, piece_class, material_index}
+  hide[], transparency, hide_skin, render_flag, state_effect
 ```
 
+## 4. 与 `.ams` 的关系
+
+爆彩的装备是**多部件**:同一套外观可由多个 `.ams` + piece class 组成,例如
+`npc.eqp` 的“企鹅老大boss”:
+
+```text
+bh_013.ams : zhijijunshenti
+bh_013.ams : zhijijunwuqi
+bh_013.ams : zhujijunxiashen
+```
+
+粉刷匠的 `equip.txt`/`fusion.txt` 则是一套皮肤一行、一个 `szModel` + 一个
+`szAni`,这也是 `.eqp` 完全没有必要继续存在的原因。

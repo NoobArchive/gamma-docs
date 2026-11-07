@@ -76,3 +76,10 @@
 
 **结论:** 这个版本的客户端逻辑（战斗、场景、玩家、庄园、UI 事件）全是 C++；
 `.gui`、`config/*.txt` 是数据，不是脚本。
+
+## `.eqp`
+
+本版仍有 `role/dress/male.eqp`(2,982B,18 条),但 `libShellClient.so`
+只引用 `equip.txt` / `role/mod/` / `role/ani/`,没有 `.eqp` / `role/dress/`
+字符串。它和 1.1.20/1.3.3 一样是遗留数据。详见
+[`../../formats/eqp.md`](../../formats/eqp.md)。

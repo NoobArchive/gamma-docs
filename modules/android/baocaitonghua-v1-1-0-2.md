@@ -23,6 +23,34 @@
 | `.mtr` | 0x2717 / 0x2716 | 11/11 |
 | `.eft` | 0x271a / 0x2719 / 0x2718 | 667/667 |
 
+## 皮肤/装备注册表 `.eqp`
+
+本作是 `.eqp` 的**实际使用者**。启动时 `CGameClient.lua` 无条件调用:
+
+```lua
+CDressingRoomClient:Instance():LoadAllFromURL( g_App:GetDataPath().."role/dress/", false );
+```
+
+`CDressingRoom` 依次加载 `npc.eqp`、`male.eqp`、`female.eqp`。
+`CEquipmentGroup.Parse`(Lua)把每个装备名映射到:
+
+```text
+.ans 骨架 + 若干 .ams 部件(pieceClassName + materialIndex)
++ .eft 特效 + scale + figureID + 皮肤贴图套装 + hide/transparency 标志
+```
+
+玩家/NPC/英雄渲染(`CPlayer`、`CNpc`、`CHero`、`PutOnAll`、选人/预览)
+都通过 `CDressingRoom:GetEquipment(group, type, name)` 取这套数据。
+
+| 文件 | 装备数 | 分组 | deps(ams/ans/eft/tex) |
+|---|---:|---|---|
+| `male.eqp` | 18 | body/foot/head ×6 | 6 / 1 / 1 / 0 |
+| `female.eqp` | 18 | body/foot/head ×6 | 6 / 1 / 1 / 0 |
+| `npc.eqp` | 292 | boss/emeng/hero/npc/obj/tszdnpc/yingxiong/yingxiong_zhanshi/zdnpc | 118 / 112 / 42 / 0 |
+
+`skinTypeCount=3` 但 `textureSetCount=0`,贴图变体未启用。
+完整结构见 [`docs/formats/eqp.md`](../../formats/eqp.md)。
+
 ## 产物
 
 ```text

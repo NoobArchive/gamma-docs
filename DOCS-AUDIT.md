@@ -30,6 +30,8 @@
 - `docs/formats/tex.md` — `.tex`/ATF/ETC/JXR;
 - `docs/formats/package.md` — `.r`/filelist/分片与打包边界;
 - `docs/formats/skins.md` — equip/fusion/model-only 皮肤与三套 ID;
+- `../gammaray-py/docs/guyu2/formats/` — 古域2 0.9.12.31 旧版
+  `.tex/.ams/.gui/.mtr` 差异(0x2711..0x2715);
 - `docs/formats/legacy-notes.md` — 旧加载链、`.ani` 光标、包/哈希。
 
 ## 3. 仍然缺的内容(按优先级)

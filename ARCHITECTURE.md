@@ -65,44 +65,19 @@ filelist 成员表 + 200 KiB 分片 + APK 重签名。这一层目前没有实�
 应在 `gammaray pack` 里拆成显式的 `--single` / `--replace` 两种模式,
 而不是假装 `r-pack` 能一键回包。
 
-## 3. 目标布局
+## 3. 目标布局 - 旧设
 
-```
-Gamma引擎相关/
-  gammaray-py/
-    pyproject.toml
-    README.md
-    src/gammaray/
-      __init__.py
-      __main__.py           # python -m gammaray
-      cli.py                # 统一 argparse / 子命令
-      legacy.py             # 临时:定位并 import 旧 gamma_* 模块
-      paths.py              # out/original、out/converted 约定
-      common.py             # CCommonFileHead / decode_text(迁入)
-      package.py            # .r / filelist / 分片(迁入)
-      tex.py                # .tex(迁入)
-      eqp.py                # .eqp/皮肤
-      ui.py                 # .gui
-      fx.py                 # .eft / .mtr
-      models/
-        __init__.py
-        ams.py
-        ans.py
-        anf.py
-        glb.py
-      convert.py            # 批量转换管线
-      pack.py               # 单包/替换包
-    tests/
-      test_common.py
-      test_package.py
-      test_tex.py
-      test_convert_smoke.py
-  gamma_formats.py          # 兼容壳(逐步变薄)
-  gamma_models.py           # 兼容壳
-  skin_sheet.py             # 独立工具
-```
+当前决定继续维护 DeltaXUtils，GammaRay 仅作为高级前端
+
+我们希望优化 DeltaXUtils 基础 CLI 使用体验和 GammaRay 前端在执行批量转换操作时与 DeltaXUtils 交互的参数组织方式，让 GammaRay 学会组织参数来让解包生活变得更容易。
+
+目标是我们可以直接把 GammaRay 甩给新用户而不用苦揪 DeltaXUtils 当前令人抓狂的命令参数布局。
+
+**并不是要彻底弃用 DeltaXUtils （gamma_formats.py等）**,我最初的不准确表述让 AI Agent 认为我们要把 DeltaXUtils 彻底干掉。
 
 包名用 `gammaray`(目录名 `gammaray-py` 只是仓库目录,不能作为 Python 包名)。
+
+APK 重签名暂时不用实现
 
 ## 4. 统一 CLI 契约
 

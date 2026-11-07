@@ -191,12 +191,20 @@ python gamma_formats.py gui-info  <x.gui> [--json out.json]
 
 # 合成一张 PNG(需要 Pillow;--tex-root 指向 png_all,--config 指向 config 目录)
 uv run --with pillow python gamma_formats.py gui-render <x.gui> <out.png> ^
-    --tex-root <png_all> --config <config> [--hide-window jishazhe]
+    --tex-root <png_all> --config <config> [--hide-window jishazhe] ^
+    [--bg transparent|RRGGBB|RRGGBBAA] [--no-widget-bg]
 
 # 批量
 uv run --with pillow python gamma_formats.py gui-batch <gui目录> <输出目录> ^
-    --tex-root <png_all> --config <config> [-q]
+    --tex-root <png_all> --config <config> [-q] ^
+    [--bg transparent|RRGGBB|RRGGBBAA] [--no-widget-bg]
 ```
+
+- 画布默认 **完全透明**(`bg=(0,0,0,0)`);需要旧版蓝黑底时用
+  `--bg 181A20`(或 `181A20FF`)。
+- 控件自身在预览器里会铺一层 `(60,80,110,40)` 的占位蓝底,用来提示
+  “这个矩形有控件但没有静态贴图”;加 `--no-widget-bg` 可去掉,
+  只保留真正的贴图/文字/纯色块。
 
 覆盖情况(213 个 `.gui`,2026-11 最新一轮):
 
