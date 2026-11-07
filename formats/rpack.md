@@ -42,10 +42,14 @@ col1(size) = 该 part 的 .r 文件实际字节数
 因此:
 
 - 只替换 `.r`、不更新 filelist 时,客户端会打印
-  `CheckLocalBuffer: read error size!!!`,但仍按 `.r` 记录头加载;
+  `CheckLocalBuffer: read error size!!!`;离线/无缓存时仍按 `.r` 记录头加载;
 - 重新生成 filelist 时,`size` 必须等于实际 `.r` 长度,否则同样报警告。
 - `fl-verify` 已增加 `size_mismatch` 统计;实测 `r-warn-probe` 为
   `ok=3 mismatch=0 size_mismatch=3`,官方 assets 为 `size_mismatch=0`。
+
+> **排错提醒**:本次在线版本服实测中,清掉客户端本地缓存后同一份 APK
+> 正常启动。该版本服只回应版本检查/serverlist,不做 filelist 与资源分发,
+> 所以出现 `.z` 404 不一定是包本身的问题;先清缓存再判断。
 
 `col2(csize)` 是服务器下载用的压缩尺寸。本地包不校验它;当前实现用
 zlib 估算,官方 `.z` 压缩器尚未确认,数值可能与官方不同。
