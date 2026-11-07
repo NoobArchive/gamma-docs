@@ -10,6 +10,7 @@
 - 公共头/文本编码:[common.md](common.md)
 - `.tex`:[tex.md](tex.md)
 - `.r`/filelist:[package.md](package.md)
+- 目录回打包/filelist `size`:[rpack.md](rpack.md)
 - 模型/骨架/动画:[ams.md](ams.md)、[ans.md](ans.md)、[anf.md](anf.md)
 - UI/特效/材质/皮肤:[gui.md](gui.md)、[eft.md](eft.md)、[mtr.md](mtr.md)、[eqp.md](eqp.md)、[skins.md](../features/skins.md)
 - 历史线索:[legacy-notes.md](legacy-notes.md)

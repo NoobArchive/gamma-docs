@@ -183,3 +183,19 @@ python gamma_models.py ams2glb <x.ams> <x.glb> --ani-root <role/ani> --clips
 - `inverseBindMatrices` **直接取 `.ans` 里存的 `[R | D]`**(见 `ans.md`),
   与引擎 `GetSkeletonMatrix` 的 a7 分支完全一致;
 - 静止姿态下 `W · invBind` 实测偏差 < 1e-4(即绑定姿态自洽)。
+
+## 回写(GLB → `.ams`)缺口
+
+目前只做 **`.ams` → GLB**,没有反方向。要回写至少还缺:
+
+1. **piece 主数据布局**:旧版 0x2713/0x2714 的 per-piece 头已解,
+   但 0x2716/0x2717 的 stride/蒙皮/索引与前缀仍需逐字段确认;
+2. **顶点量化**:位宽 8/9/10/11/12 的打包、`TTinyNormal`、UV 缩放
+   需要把 float 逆量化回整数并处理越界;
+3. **piece 包围盒/材质表**:`.ams` extra 的 size/center/bits/mats
+   需要从 GLB 的 primitive/材质反推;
+4. **动画**:`.anf` 的 30fps 时间轴、四元数轴角、平移/缩放轨道
+   需要从 glTF 动画采样并量化;
+5. **蒙皮**:joint/weight 的 4×u8 打包顺序与 `.ans` 骨索引绑定。
+
+因此当前 `prepare` 只处理贴图,不处理模型;`pack` 只负责把现有文件封包。

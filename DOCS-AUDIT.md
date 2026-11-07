@@ -29,6 +29,7 @@
 - `docs/formats/common.md` — `CCommonFileHead`/依赖/文本编码;
 - `docs/formats/tex.md` — `.tex`/ATF/ETC/JXR;
 - `docs/formats/package.md` — `.r`/filelist/分片与打包边界;
+- `docs/formats/rpack.md` — 目录回打包、filelist `size` 语义与 gx_dump 对比;
 - `docs/formats/skins.md` — equip/fusion/model-only 皮肤与三套 ID;
 - `../gammaray-py/docs/guyu2/formats/` — 古域2 0.9.12.31 旧版
   `.tex/.ams/.gui/.mtr` 差异(0x2711..0x2715);

@@ -21,7 +21,7 @@
 
 | | 内容 |
 |---|---|
-| 已实现 | 头部/deps/索引、raw(RGBA)、DXT1/5、ETC2、双 ETC1(色彩+alpha)、mip 跳过、ATF 内嵌 JXR 抽取、**旧版 0x2711..0x2713/0x2715 的 24B 头 + 块 RLE** |
+| 已实现 | 头部/deps/索引、raw(RGBA)、DXT1/5、ETC2、双 ETC1(色彩+alpha)、mip 跳过、ATF 内嵌 JXR 抽取、**旧版 0x2711..0x2713/0x2715 的 24B 头 + 块 RLE**、**PNG→raw BGRA .tex** |
 | 覆盖 | 792 个全部可解:788 个 PNG + `loading_1..4` 的 4 个 JPEG-XR(仅 `.jxr`); `tex-batch` 批量; **古域2 旧版 8700/8700** |
 | 缺陷 | `fmt=1` 的 JXR 负载只能抽出来(需要 jxrlib 才能转 PNG); 少数 `Compressed` 变体只写 `.bin` |
 | 思路 | JXR 用 `jxrlib`/`texconv` 转码; 或者直接取更低的 mip |
@@ -30,10 +30,10 @@
 
 | | 内容 |
 |---|---|
-| 已实现 | `parse_package` / `build_package`、按 filelist 分组、多分片拼接 |
-| 覆盖 | `fl-verify` 636 条记录 0 mismatch |
-| 缺陷 | 跨分片的记录需要按声明长度拼接, 个别文件仍会报 problems |
-| 思路 | 用 filelist 的 path->包映射做二次校验 |
+| 已实现 | `parse_package` / `build_package`、按 filelist 分组、多分片拼接; **目录封包 `gammaray pack`**(200 KiB 分组/分片 + 自动生成 `filelist_<ver>.r`); **APK 直接解包** |
+| 覆盖 | `fl-verify` 636 条记录 0 mismatch; gx_dump 重打:成员 **2515/2515**、内容差异 **0**; 分片长度分布与官方一致 |
+| 缺陷 | 官方服务器分组不是单纯 200 KiB 贪心(中位包约 65 KiB),重打包的**包划分不同**; `csize` 只是 zlib 估算; 不生成服务器 `.z`,不重签 APK |
+| 思路 | 若需逐字节复刻官方 filelist,需要原服务器打包清单;否则内容一致即可 |
 
 ### 1.3 `.ams` 模型
 
@@ -168,6 +168,30 @@
 
 仍未覆盖:`.map` 576、`.rgn` 9687+、`.skc` 743、`.tsk` 225、`.sce` 103,
 以及 2 个 `0x7000` 地图块。
+
+### 1.13 GammaRay CLI / 回打包
+
+统一入口(`gammaray-py`):
+
+```text
+unpack   目录 / .apk -> out/original(可 -c 顺带转换)
+convert  out/original -> out/converted(--only tex,models,ui,mat,fx)
+prepare  PNG -> raw BGRA .tex(默认 out/datapre-时间戳)
+pack     目录 -> .r + filelist_<version>.r(默认 out/datarel-时间戳)
+```
+
+- `unpack` 自动找最新的 `filelist_*.r`;APK 会解 `assets/` 到临时目录;
+- `pack` 排除根 `etc/`、`version.inf`、`filelist_*.r`;同目录累计 ≤200 KiB
+  合成一个包,大文件按 200 KiB 分片;
+- `prepare` 目前只实现 **raw BGRA**(`format=3`,storage=0,1 mip),
+  PNG→TEX→PNG 像素差异 0;ATF/ETC/DXT 尚未确定;
+- gx_dump 重打对照 assets:成员 **2515/2515**、内容差异 **0**,
+  但逻辑包 633→366(官方分组不是单纯 200 KiB 贪心);
+- 只替换小文件、不更新 filelist 时,客户端仅打印
+  `CheckLocalBuffer: read error size!!!`,仍能加载。
+
+详见 [`gammaray-py/docs/howto.md`](../gammaray-py/docs/howto.md)、
+[`docs/formats/rpack.md`](formats/rpack.md)。
 
 ## 2. 已知未解问题(按优先级)
 

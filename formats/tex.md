@@ -92,3 +92,36 @@ python gamma_formats.py tex-pack   payload.bin out.tex --format 3 --width 512 --
   未安装时 ATF 会落成 `.atf`(原始/DXT/JPEG-XR 仍可纯标准库处理)。
 - `tex-unpack` 输出 `.meta.json`(宽高/格式/mip),便于回打包。
 - `tex-pack` 需要已经解码好的原始 payload;不会从 PNG 自动压缩成 ETC2。
+
+## PNG → raw BGRA `.tex`(`gammaray prepare`)
+
+```powershell
+uv run --with pillow python gammaray.py prepare <目录> -o out/datapre
+```
+
+- 输出 0x2717 `.tex`:`index=[3,0,w,h,0,1,w,h,0]`,
+  `main = u32(byteLen) + BGRA`;
+- `.png/.jpg/.bmp` 转 `.tex`,其它文件原样复制;
+- PNG→TEX→PNG 实测像素差异 **0**;
+- `--tex-format bgra|raw`;ATF/ETC2/DXT 的容器、mip 链和通道顺序未确认,
+  因此 `tex-pack` / `prepare` 暂时都不写这些格式。
+
+| 目标格式 | 状态 |
+|---|---|
+| raw RGBA32(format=3) | ✅ |
+| ATF(ETC2/ETC1+DXT) | ⬜ 未确认 header/块布局 |
+| 直接 DXT1/5 | ⬜ 未确认引擎 `.tex` 是否允许非 ATF 的 DXT |
+| 旧版 0x2711..0x2713 `.tex` | ⬜ 写回未做(读已支持) |
+
+1.3.3 包内实际出现的 `(version, format, storage)` 组合:
+
+| format | storage | 数量 | 说明 |
+|---|---:|---:|---|
+| 1 | 4 | 431 | ATF 容器(DXT5/ETC) |
+| 0 | 4 | 283 | ATF 容器(DXT1/ETC) |
+| 3 | 0 | 73 | 裸 RGBA32(BGRA 内存序) |
+| 3 | 4 | 4 | ATF 容器 |
+| 2 | 0 | 1 | 裸 RGB24 |
+
+因此 `prepare` 的 raw BGRA 回写只覆盖 `format=3, storage=0` 这一类;
+其余要么需要实现 ATF 容器,要么需要确认引擎是否接受裸 DXT。

@@ -24,9 +24,16 @@ filelist 本体也是一个 `.r`(单记录),内容是 **TSV**(`CTabFile`,`\r\n` 
 ```
 
 - `col1 >= 0`:包分片行,通常名为 `<dir>/<md5>.z`。
-  `col1` = 分片本地字节数,`col2` = 网络压缩字节数。
+  `col1` = **该分片 `.r` 的实际字节数**(不是 payload 大小);
+  `col2` = 网络压缩后的 `.z` 字节数。
+  单分片时 `col1 = 成员 payload 总和 + 4 × 成员数`。
 - `col1` 为空/负数:成员行,紧跟在一段连续分片行之后,是该逻辑包内的文件
   (按出现顺序对应拼接头内第 0、1… 条记录)。
+
+> 只替换 `.r` 而不更新 `col1` 时,客户端会打印
+> `CFileReader::CheckLocalBuffer: read error size!!!`,
+> 但仍能按 `.r` 自己的记录头加载。实测见
+> [`r-warn-probe/REPORT.md`](../../../_agent-sandbox/r-warn-probe/REPORT.md)。
 
 本地文件名 = 包名结尾 `.z` → `.r`;分片从 APK 的 `assets/<name>` 读取。
 
@@ -53,6 +60,9 @@ music/2f3741d3.z    51691  无头续片
 ## 4. 工具与边界
 
 ```powershell
+# 推荐:目录封包 + 自动生成 filelist(200 KiB 分组/分片)
+python gammaray.py pack <目录> -o out/datarel --version 1.3.3.4.7
+
 python gamma_formats.py fl-list   assets/filelist_1.3.3.4.7.r
 python gamma_formats.py fl-verify <assets_dir> --filelist filelist_1.3.3.4.7.r
 python gamma_formats.py unpack    <assets_dir> out/original --filelist filelist_1.3.3.4.7.r
@@ -61,23 +71,27 @@ python gamma_formats.py r-pack    out.r file1 [file2 ...]
 python gamma_formats.py r-types   a.r
 ```
 
-当前全量验证:`ok=636 mismatch=0 missing=0`。
+当前全量验证:`ok=636 mismatch=0 missing=0 size_mismatch=0`。
+`fl-verify` 现在同时校验每个分片 `.r` 的实际长度与 filelist `col1`;
+只替换 `.r` 不更新 filelist 时会显示 `size_mismatch`。
+目录封包的规则、与官方 assets 的对比见
+[`rpack.md`](rpack.md)。
 
-### `r-pack` 能做什么、不能做什么
+### `pack` / `r-pack` 能做什么、不能做什么
 
-`r-pack` 只是**记录级打包器**:把多个文件按 `[u32 len][data]` 写成一个 `.r`。
+`gammaray pack` 会按目录生成完整的 `.r` + `filelist_<version>.r`:
+同目录累计 ≤200 KiB 合成一个逻辑包,大文件按 200 KiB 分片;
+根目录 `etc/`、`version.inf`、`filelist_*.r` 被排除。
 
-它**不会**自动:
+它**不会**:
 
-- 恢复 filelist 的成员名/顺序;
-- 更新 filelist 的 `col1/col2`(大小);
-- 做 200 KiB 分片;
-- 重新签名 APK。
+- 生成服务器下载用的 `.z`(`csize` 只是 zlib 估算);
+- 重打包/签名 APK;
+- 复刻官方服务器打包器的分组(官方中位包约 65 KiB,
+  不是单纯的 200 KiB 贪心);
+- 恢复官方包名(用内容+成员列表生成 MD5 名)。
 
-因此:
-
-- 打包一个**单记录** `.r`(或成员顺序已知的多记录包)可以直接用;
-- 要替换游戏内包,必须保持原包的**成员顺序**,并在必要时同步修改 filelist 与分片;
-- 不要期待 `r-pack` 生成一个可直接替换 APK 的完整包。
+`r-pack` 仍然只是**记录级打包器**:把多个文件按 `[u32 len][data]`
+写成一个 `.r`,不写 filelist、不分片。
 
 `.r` 记录本身没有加密;高熵内容(MP3/H.264)只是媒体压缩,不是加密。

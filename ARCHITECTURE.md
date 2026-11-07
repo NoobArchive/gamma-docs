@@ -11,13 +11,17 @@
 |---|---:|---|
 | `gammaray-py/src/deltaxutils/gamma_formats.py` | ~112 KB | `CCommonFileHead`、`.tex`、`.r`/filelist、`.eqp`、`.gui`、`.eft`、`.mtr`、全部底层 CLI |
 | `gammaray-py/src/deltaxutils/gamma_models.py` | ~44 KB | `.ams`/`.ans`/`.anf` 解析、GLB 写出、模型 CLI |
+| `gammaray-py/src/deltaxutils/rpack.py` | 小 | 目录 → `.r` + `filelist`(200 KiB 分组/分片) |
+| `gammaray-py/src/deltaxutils/texbuild.py` | 小 | PNG → raw BGRA `.tex` |
 | `gammaray-py/src/deltaxutils/skin_sheet.py` | ~12 KB | GLB 软件光栅化、皮肤缩略图/皮肤页 |
-| `gammaray-py/src/gammaray/` | 前端 | `unpack` / `convert` / `pack` / `info` 统一工作流 |
+| `gammaray-py/src/gammaray/` | 前端 | `unpack` / `convert` / `prepare` / `pack` / `info` |
 
 ### 已能做的事
 
 ```
 解包      unpack / fl-verify / r-unpack / fl-list
+封包      gammaray pack（目录→.r + filelist，200KiB 分组/分片）
+预处理    gammaray prepare（PNG → raw BGRA .tex）
 贴图      tex-info / tex-unpack / tex-batch / tex-pack
 模型      ams2glb(蒙皮 + 动画 + 贴图 + mtr 材质)
 骨架/动画  anf-info / anf-table / ans 绑定
@@ -29,14 +33,15 @@ UI        gui-info / gui-render / gui-batch
 
 ### 结构性问题
 
-1. **没有统一的“转换”入口**:
-   `out/original` 是混合目录(`.tex/.ams/.gui/.eft/.mtr/.eqp/...`),
-   但转换要分别记 `tex-batch`、`ams2glb`、`gui-batch`、`eft-*`、`mtr-info` 的参数和顺序。
+1. **转换入口已统一**:
+   `gammaray convert` 按 tex → models/ui → fx/mat 的固定顺序调用,
+   不再需要逐条记 `tex-batch` / `ams2glb` / `gui-batch` 的参数。
 2. **两套 CLI 风格**:
-   `gamma_formats.py` 和 `gamma_models.py` 各有一个 `main()`;
-   公共逻辑(路径、依赖、错误处理)重复。
-3. **`r-pack` 不是“回打包器”**:
-   只写记录,不维护 filelist、不分片、不签名;多成员包顺序需手工保证。
+   `gamma_formats.py` / `gamma_models.py` 仍保留底层命令;
+   GammaRay 只做参数组织和错误处理,底层公共逻辑仍有重复。
+3. **回打包器已补第一版**:
+   `gammaray pack` / `rpack.py` 能按目录生成 `.r` + filelist,
+   做 200 KiB 分组/分片;仍不生成服务器 `.z`、不重签 APK。
 4. **文档漂移**:
    `FORMAT-NOTES.md` 原先与 `docs/` 脱节,数字/命令已旧;现改为迁移指针,
    `.tex`、`.r/filelist`、公共头三份正式文档已补到 `docs/formats/`。
@@ -49,23 +54,22 @@ UI        gui-info / gui-render / gui-batch
 APK/assets
   └─ unpack ───────────────► out/original
                                  │
-                                 ├─ tex-batch ──► out/converted/tex
-                                 ├─ ams2glb ───► out/converted/models
-                                 ├─ gui-batch ─► out/converted/ui
-                                 ├─ eft-* ─────► out/converted/fx
-                                 └─ mtr-info ──► out/converted/mat
+                                 ├─ convert ─────► out/converted/{tex,models,ui,mat,fx}
                                  │
-                                 └─ r-pack ────► out/packed/*.r
+                                 └─ prepare ─────► out/datapre (PNG → .tex)
+                                                       │
+                                                       └─ pack ─► out/datarel
+                                                                    *.r + filelist_<ver>.r
 ```
 
-**关键顺序**:先 `tex`,再 `models` / `ui`(后两者依赖 PNG)。
+**关键顺序**:`unpack` →(`convert` 先 tex,再 models/ui)→ `prepare` → `pack`。
 
-**打包边界**:`r-pack` 只负责记录布局;要替换游戏包,还需要
-filelist 成员表 + 200 KiB 分片 + APK 重签名。这一层目前没有实现,
-应在 `gammaray pack` 里拆成显式的 `--single` / `--replace` 两种模式,
-而不是假装 `r-pack` 能一键回包。
+**打包边界**:`gammaray pack` 已能生成 `.r` + filelist 并做 200 KiB 分组/分片;
+仍不生成服务器 `.z`、不重签名 APK。官方 filelist 的分组不是单纯的
+200 KiB 贪心(中位包约 65 KiB),因此重打包的**成员内容一致、包划分不同**;
+详见 [`formats/rpack.md`](formats/rpack.md)。
 
-## 3. 目标布局 - 旧设
+## 3. 目标
 
 当前决定继续维护 DeltaXUtils，GammaRay 仅作为高级前端
 
@@ -82,19 +86,17 @@ APK 重签名暂时不用实现
 ## 4. 统一 CLI 契约
 
 ```powershell
-# 解包
-gammaray unpack <assets> -o out/original [--filelist ...] [--only config]
+# 解包:目录或 APK;自动找 filelist;可 -c 顺带转换
+gammaray unpack <目录或.apk> [-o out/original] [--filelist ...] [-c [out/converted]]
 
-# 批量转换(核心新增)
-gammaray convert <out/original> -o out/converted `
-    [--only tex,models,ui,fx,mat] `
-    [--texture-tool uv] [--jobs N]
+# 转换:默认 src=out/original, out=out/converted
+gammaray convert [out/original] [-o out/converted] [--only tex,models,ui,mat,fx]
 
-# 打包
-gammaray pack out/packed/one.r file.bin
-gammaray pack out/packed/pkg.r --members f1 f2 f3   # 顺序敏感
-# 替换包(未来)
-gammaray pack --replace original.r --members ... --filelist ...
+# 预处理:PNG → raw BGRA .tex
+gammaray prepare <目录> [-o out/datapre-时间戳] [--tex-format bgra]
+
+# 目录封包 + filelist(200KiB 分组/分片)
+gammaray pack <目录> [-o out/datarel-时间戳] [--version 1.3.3.4.7] [--limit 204800]
 ```
 
 ### `convert` 的输出约定
@@ -104,43 +106,45 @@ out/converted/
   tex/      保持原相对路径,如 role/tex/p_001_t01.png
   models/   role/mod/*.glb, fx/mod/*.glb
   ui/       gui/**/*.png
-  fx/       cfg/*.png + *.json
+  fx/       cfg/*.json
   mat/      *.json
-  skins.json / male_eqp.json
 ```
 
 `convert` 内部顺序固定:tex → models/ui → fx/mat。
-`--only` 控制子集;`--jobs` 可并行(先保证串行正确)。
+`--only` 控制子集;当前串行执行,`--jobs` 尚未实现。
 
 ## 5. 迁移计划(不破坏旧脚本)
 
 1. **补文档**（已做）:
    `docs/formats/common.md`、`tex.md`、`package.md`;
    `FORMAT-NOTES.md` 改为迁移指针。
-2. **建 `gammaray` 前端 + DeltaXUtils**（已做第一版）:
+2. **建 `gammaray` 前端 + DeltaXUtils**（已做）:
    `gammaray-py/src/deltaxutils/` 收纳原 `gamma_formats.py` / `gamma_models.py`
-   与皮肤/打包工具;`gammaray/legacy.py` 直接导入 `deltaxutils`,
-   前端只保留 `unpack` / `convert` / `pack` / `info` 工作流。
+   与 `rpack.py` / `texbuild.py` / 皮肤工具;`gammaray/legacy.py` 直接导入 `deltaxutils`,
+   前端提供 `unpack` / `convert` / `prepare` / `pack` / `info` 工作流。
 3. **逐步拆 DeltaXUtils 模块**:
-   先拆 `common/package/tex`(依赖少),再拆 `ams/ans/anf/glb`,最后 `gui/eft/mtr`;
-   前端不直接依赖大文件内部实现。
+   已拆出 `rpack.py`(目录封包/filelist)与 `texbuild.py`(PNG→.tex);
+   `common/package/tex` 与 `ams/ans/anf/glb` 仍在大文件里,后续再拆。
 4. **旧 CLI 兼容**:
-   `gamma_formats.py` / `gamma_models.py` 保留同名命令,内部转调 `gammaray.cli`,
-   并在 `--help` 里提示新入口。
+   `gamma_formats.py` / `gamma_models.py` 保留全部旧命令,互不转调;
+   GammaRay 只组合参数,底层行为仍可直接用旧命令复现。
 5. **测试/校验**:
    - `fl-verify` 636/636;
    - `.eft` 754/754 prop、`.mtr` 12/12;
    - `.gui` 213/213;
    - `ams2glb` role 78/78、fx 59/59;
-   - 新增 `convert` 的 smoke test(小目录)。
+   - `pack` 重打 gx_dump:成员 2515/2515、内容差异 0;
+   - `prepare` PNG→TEX→PNG 像素差异 0;
+   - `unpack` 目录 / APK / `-c` 均实测通过。
 
 ## 6. 本轮的落地程度
 
 - 文档:已补齐 `GETTING-STARTED.md`、`ARCHITECTURE.md`、`DOCS-AUDIT.md`、
-  `common.md`、`tex.md`、`package.md`、`legacy-notes.md`;
+  `common.md`、`tex.md`、`package.md`、`rpack.md`、`legacy-notes.md`;
 - `FORMAT-NOTES.md`:改为“已迁移”指针(内容进入 docs/formats);
-- `gammaray-py`:已实现可运行的 `unpack` / `convert` / `pack` / `info`;
-  后端已迁入 `src/deltaxutils/`,`convert` 已实测 tex / models / ui / mat/fx。
+- `gammaray-py`:已实现 `unpack`(目录/APK/`-c`)、`convert`、`prepare`、
+  `pack`(目录+filelist)、`pack-records`、`info`;
+- 后端已迁入 `src/deltaxutils/`,新增 `rpack.py` / `texbuild.py`。
 
 > 不应把“所有格式都搬完”作为第一版目标;
 > 第一版的价值是**一个入口 + 一条可重复的转换管线**。
