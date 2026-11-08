@@ -31,3 +31,19 @@ Caused by: java.lang.IllegalArgumentException: Service Intent must be explicit: 
 ```
 
 ## 问题原因及修复方式
+
+`NotificationBootReceiver` 只有一句:
+
+```java
+context.startService(new Intent("com.joyegame.shellclient.NotificationService"));
+```
+
+Android 5.0 起 Service Intent 必须是显式的,这里只给了 action,所以开机广播一进来就抛
+`IllegalArgumentException`。讽刺的是,同一个 APK 的 `ShellClient.getNotifyServiceIntent()`
+本来就是显式写法,只有开机路径漏了。
+
+但只改成显式 Intent 还不够:Android 8+ 会撞后台服务限制,12+ 还要 `exported` /
+`PendingIntent` flag,13+ 要通知权限,14+ 要前台服务类型。完整分析与两种修法见
+[modernize-gamma/push-notification.md](../modernize-gamma/push-notification.md)。
+
+结论:可以修,不必删。
