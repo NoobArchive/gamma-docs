@@ -27,7 +27,7 @@
 | P1 | 权限裁剪 | 31 条 → 9 条级别 | [android-manifest.md](android-manifest.md) |
 | P1 | 通知渠道 / 前台服务 | Android 8+ 的后台限制 | [push-notification.md](push-notification.md) |
 | P1 | 字体模块配对 | 旧 APK + 新 native **必然无字** | [font-module.md](font-module.md) |
-| P2 | 导航栏 / 反向横屏 | Theme 不隐藏导航栏;180° 触控偏移 | [android-manifest.md](android-manifest.md) |
+| P2 | 导航栏 / 刘海适配 | Theme 不隐藏导航栏;刘海侧缺一条渲染 + 触控偏移 | [android-manifest.md](android-manifest.md) |
 | P2 | 权限提示框 | NativeActivity 里用了 AppCompat `AlertDialog` | [android-manifest.md](android-manifest.md) |
 | P3 | 明文 HTTP | 若私服/SDK 走 `http://`,targetSdk 28+ 默认禁止 | [android-manifest.md](android-manifest.md) |
 
@@ -64,5 +64,5 @@ adb install -r bop133-signed.apk
 - [ ] 冷启动到主界面,字体不是空白/方块/错位
 - [ ] 开机不弹 `FATAL EXCEPTION`(推送 receiver)
 - [ ] 拒绝权限时提示框不崩
-- [ ] 导航栏不遮挡画面;正/反横屏触控落点一致
+- [ ] 导航栏不遮挡画面;刘海侧画面完整;正/反横屏触控落点一致
 - [ ] 后台 5 分钟后回来,游戏没有被系统杀死到白屏

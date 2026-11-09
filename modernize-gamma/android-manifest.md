@@ -95,33 +95,119 @@ getWindow().getInsetsController().setSystemBarsBehavior(
     WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 ```
 
-> 这是 `NativeActivity`,没有 `setContentView`;在 `onCreate`/`onWindowFocusChanged`
-> 里做即可。注意 `configChanges` 已包含 `orientation`,旋转不会重建 Activity,
-> 沉浸式标志要在每次焦点变化后重新贴。
+> 这里是 `NativeActivity` + 自建 `SurfaceView`;在 `onCreate`(`setContentView` 之前)
+> 或 `onWindowFocusChanged` 里做即可。注意 `configChanges` 已包含 `orientation`,
+> 旋转不会重建 Activity,沉浸式标志要在每次焦点变化后重新贴。
 
-## 5. 反向横屏触控偏移
+## 5. 全面屏 / 刘海:缺一条渲染 + 触控偏移
 
-`sensorLandscape` 允许 0°/180° 两个方向。输入由 `NativeActivity` 的 input queue
-直接交给 native,Surface 可能带 180° transform;若 native 只用
-`ANativeWindow_getWidth/Height`、没对 `ANativeWindow_getTransform` 做反向映射,
-就会出现 X/Y 镜像。
+现象(实测修正):
 
-验证(MuMu 或真机):
+- **非全面屏设备**:反向横屏触控基本正常;
+- **全面屏(刘海/挖孔)设备**:刘海区（摄像头那一侧）**完全没有引擎画面**,
+  透出 Theme 的窗口背景(例如 Holo 深色渐变);即使用户在系统里把游戏设成"全屏"仍然如此;
+- 触控**不是镜像**,而是整体平移一个 inset 量(肉眼像"一点偏移")。
 
-```powershell
-adb shell settings put system accelerometer_rotation 0
-adb shell settings put system user_rotation 0   # 正向横屏
-adb shell settings put system user_rotation 2   # 反向横屏
-# 同一个屏幕坐标连点两次,对比 native 收到的 motion event
+### 原因
+
+1. 原包 `targetSdk=22`,清单和主题里都**没有 `layoutInDisplayCutoutMode`**。
+   Android 9+ 对这类应用按"未适配刘海"处理:横屏时 content 区域被
+   `DisplayCutout` 的安全区(以及系统栏)inset 缩进;窗口本身仍是全屏,
+   所以 inset 那条露出 Decor 的 `windowBackground`(就是看到的主题背景)。
+   系统里的"全屏显示"开关只是**允许**应用使用刘海区,并不会替应用消掉它自己的
+   content inset —— 应用侧仍要显式声明。
+2. `GammaActivity` 用自建 `SurfaceView` 当 content(`setContentView(m_mainView)`),
+   只靠 `windowFullscreen` 隐藏状态栏;没有 `SYSTEM_UI_FLAG_LAYOUT_*`、
+   没有 `setDecorFitsSystemWindows(false)`、也没有任何 cutout 处理。
+3. Native 侧(`libShellClient.so`):
+   - `Gamma::SWindowContext::ProcessInput`(@`0x26c23c`)在窗口创建/尺寸变化时把
+     client rect 设成 `(0, 0, ANativeWindow_getWidth(), ANativeWindow_getHeight())`;
+   - `glViewport` 用的也是这个尺寸;
+   - `CAndroidApp::Run`(@`0x262b1c`)注册的 `ANativeActivityCallbacks` 里
+     **没有 `onContentRectChanged`**,也没有用 `ANativeWindow_getTransform`;
+   - `AMotionEvent_getX/Y` 拿到的是**窗口坐标**,原样打包 (`x | y<<16`) 后透传。
+
+   于是 Surface 被 inset 后,输入坐标和引擎的 surface 坐标系差了一个 inset 量:
+   画面缺一条、触控固定偏移,两个现象同源。
+
+> 这也解释了为什么只有刘海设备中招:普通设备 cutout 为 0,inset 也是 0。
+
+### 修复
+
+清单(API 28+):
+
+```xml
+<activity
+    android:name="com.mqgamer.fenshuajiang.client.GameClientActivity"
+    android:layoutInDisplayCutoutMode="shortEdges"
+    ... />
 ```
 
-定位顺序:
+`GammaActivity.onCreate`(`setContentView` 之前):
 
-1. 先看 Java 层 `GammaActivity` 有没有 `onConfigurationChanged` / 手动改坐标;
-2. 再看 native 的 `ANativeActivity` 回调里是否读 `AConfiguration_getOrientation`
-   或 `ANativeWindow_getTransform`;
-3. 若都没有,基本就是没处理 180° transform,需要在把坐标送进 UI 系统前乘一次
-   镜像矩阵。
+```java
+if (Build.VERSION.SDK_INT >= 28) {
+    WindowManager.LayoutParams lp = getWindow().getAttributes();
+    lp.layoutInDisplayCutoutMode =
+        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+    getWindow().setAttributes(lp);
+}
+if (Build.VERSION.SDK_INT >= 30) {
+    getWindow().setDecorFitsSystemWindows(false);
+} else {
+    getWindow().getDecorView().setSystemUiVisibility(
+        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+      | View.SYSTEM_UI_FLAG_FULLSCREEN
+      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+      | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+}
+```
+
+- `shortEdges` 允许横屏占用左右短边的 cutout;`always`(API 30+)更强,但会连
+  竖屏顶部也铺进去,游戏用 `shortEdges` 就够。
+- 只加 `shortEdges` 可能画面铺满、触控仍差一点;要同时修触控,必须让 content
+  真正铺满(inset 归零),所以 `setDecorFitsSystemWindows(false)` /
+  `LAYOUT_*` 不能少。
+- 清单里 `configChanges` 已包含 `orientation`,旋转不会重建 Activity;
+  沉浸式标志建议在 `onWindowFocusChanged` 里重新贴一次。
+
+### 验证
+
+```powershell
+# 看 content frame 与 window frame 是否差一个 cutout 宽度
+adb shell dumpsys window windows | Select-String "<package>|frame=|content="
+adb shell dumpsys window displays | Select-String "cutout|DisplayFrames"
+```
+
+代码级快速判定:在 `GammaActivity.onCreate` 里延迟一帧打印
+
+```java
+m_mainView.post(() -> {
+    View decor = getWindow().getDecorView();
+    Log.i("Gamma", "surface=" + m_mainView.getWidth() + "x" + m_mainView.getHeight()
+          + " window=" + decor.getWidth() + "x" + decor.getHeight());
+    WindowInsets ins = decor.getRootWindowInsets();
+    if (ins != null) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            Insets i = ins.getInsets(WindowInsets.Type.systemBars()
+                                   | WindowInsets.Type.displayCutout());
+            Log.i("Gamma", "insets L/T/R/B=" + i.left + "/" + i.top + "/" + i.right + "/" + i.bottom);
+        } else {
+            Log.i("Gamma", "insets L/T/R/B=" + ins.getSystemWindowInsetLeft() + "/"
+                  + ins.getSystemWindowInsetTop() + "/" + ins.getSystemWindowInsetRight()
+                  + "/" + ins.getSystemWindowInsetBottom());
+        }
+    }
+});
+```
+
+- `surface != window` → content 被 inset(直接证据);
+- 哪一侧的 inset 非 0,就应该和"缺一条"的那一侧对得上;
+- 如果非 0 的是系统栏宽度而不是刘海宽度,说明 band 来自系统栏 inset,
+  修法相同(`setDecorFitsSystemWindows(false)` + 隐藏系统栏);
+- 修复后 `surface == window`,四个 inset 全 0。
 
 ## 6. 权限提示框(NativeActivity 的坑)
 
