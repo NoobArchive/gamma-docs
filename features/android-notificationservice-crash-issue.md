@@ -47,3 +47,11 @@ Android 5.0 起 Service Intent 必须是显式的,这里只给了 action,所以�
 [modernize-gamma/push-notification.md](../modernize-gamma/push-notification.md)。
 
 结论:可以修,不必删。
+
+## 附:1.3.3 的"正在运行"常驻通知不是它
+
+那条通知来自盛大的 `com.sdg.sdgpushnotificationservice.GPushService`:
+它在 `onCreate` 里 `startForeground(id, new Notification())`(空通知),
+Android 8+ 便显示系统级的"正在运行 / 点按即可了解详情或停止应用"。
+1.3.0 / 1.3.2 没有声明这个 service,所以没有;与本篇的提醒服务无关。
+详见 [modernize-gamma/push-notification.md](../modernize-gamma/push-notification.md) §0。

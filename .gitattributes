@@ -1,3 +1,5 @@
-# Normalize all text files to LF in the repository and in the working tree,
-# so Windows/Linux checkouts look identical to Git.
+# Make both doors and animals happy
 * text=auto eol=lf
+
+*.bat text eol=crlf
+*.jar binary

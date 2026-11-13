@@ -76,6 +76,15 @@ android:configChanges     = 0x4a0          # orientation|keyboardHidden|screenSi
 **`windowFullscreen` 只隐藏状态栏,不隐藏导航栏**;
 所以"默认主题不隐藏虚拟导航键"不是选错主题,而是平台主题本来就没有 immersive 语义。
 
+> 横屏时导航栏在哪一侧**没有跨版本保证**,不要按"横屏一定在右"写逻辑:
+> - Android 6 时代 + 部分 OEM 的 3-button 导航栏会固定在横屏的短边(右侧);
+> - Android 10+ 手势导航的 handle 固定在**物理底边**,横屏时就是长边;
+> - 3-button 是否允许移到侧边由 `config_navBarCanMove` 的 OEM overlay 决定 ——
+>   EMUI 10 / HarmonyOS 3 仍在右侧、PixelOS 14/15 在底部,并不矛盾。
+>
+> 应用侧只应依赖 `WindowInsets.Type.navigationBars()` / `systemBars()` 的实际
+> inset(或直接沉浸式隐藏),不要假定某一侧。
+
 两种改法:
 
 ```java

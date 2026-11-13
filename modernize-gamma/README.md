@@ -26,6 +26,7 @@
 | P0 | `android:exported` | targetSdk 31+ 的硬性要求 | [android-manifest.md](android-manifest.md) |
 | P1 | 权限裁剪 | 31 条 → 9 条级别 | [android-manifest.md](android-manifest.md) |
 | P1 | 通知渠道 / 前台服务 | Android 8+ 的后台限制 | [push-notification.md](push-notification.md) |
+| P1 | 1.3.3 常驻"正在运行"通知 | 来自 Shanda `GPushService` 的空 Notification,不是提醒服务 | [push-notification.md](push-notification.md) |
 | P1 | 字体模块配对 | 旧 APK + 新 native **必然无字** | [font-module.md](font-module.md) |
 | P2 | 导航栏 / 刘海适配 | Theme 不隐藏导航栏;刘海侧缺一条渲染 + 触控偏移 | [android-manifest.md](android-manifest.md) |
 | P2 | 权限提示框 | NativeActivity 里用了 AppCompat `AlertDialog` | [android-manifest.md](android-manifest.md) |
