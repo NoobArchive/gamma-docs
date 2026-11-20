@@ -95,3 +95,20 @@ python gamma_formats.py r-types   a.r
 写成一个 `.r`,不写 filelist、不分片。
 
 `.r` 记录本身没有加密;高熵内容(MP3/H.264)只是媒体压缩,不是加密。
+
+## 5. Android 热更新缓存
+
+客户端的热更新缓存目录(示例
+`.../files/cache`)把下载的 `.r` 以 **percent-encoded URL** 命名:
+
+```text
+http%A3%F2%F2res.fsj.mqgamer.com%F2fenshuajiang%F2data%F2config%F2<hash>.r
+```
+
+- `%F2` 是 GBK 全角斜杠 `／`(A3F2)被拆开后的残留,实际用作 `/`;
+- 逻辑路径取 `/data/` 之后的部分,例如 `config/<hash>.r`;
+- 缓存根里通常还有 `filelist_<ver>.r`、`media.inf` 等。
+
+`gammaray unpack <cache>` 会自动识别这种目录,展开到临时 assets 视图后
+按 filelist 解包;`--base <APK assets>` 可先铺基础资源再叠加缓存。
+缓存可能只包含热更新文件,缺少的包会写进 `_unsupported.txt`。

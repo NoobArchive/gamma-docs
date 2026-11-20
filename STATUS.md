@@ -181,6 +181,9 @@ pack     目录 -> .r + filelist_<version>.r(默认 out/datarel-时间戳)
 ```
 
 - `unpack` 自动找最新的 `filelist_*.r`;APK 会解 `assets/` 到临时目录;
+  **热更新 cache 目录**(`http%...%F2...data%F2...r`)可自动展开,按
+  `/data/` 后的逻辑路径解包;`--base` 可叠加 APK 基础资源;
+- 默认输出在**目标旁边的 `out/`**,不再依赖当前工作目录;
 - `pack` 排除根 `etc/`、`version.inf`、`filelist_*.r`;同目录累计 ≤200 KiB
   合成一个包,大文件按 200 KiB 分片;
 - `pack` 的版本号默认读根 `version.inf` 的 `[Data] Version`,
@@ -195,6 +198,7 @@ pack     目录 -> .r + filelist_<version>.r(默认 out/datarel-时间戳)
 
 详见 [`gammaray-py/docs/howto.md`](../gammaray-py/docs/howto.md)、
 [`docs/formats/rpack.md`](formats/rpack.md)。
+代码整洁度评估见 [`CODE-QUALITY.md`](CODE-QUALITY.md)。
 
 ## 2. 已知未解问题(按优先级)
 
