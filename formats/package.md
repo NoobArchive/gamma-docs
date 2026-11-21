@@ -105,9 +105,10 @@ python gamma_formats.py r-types   a.r
 http%A3%F2%F2res.fsj.mqgamer.com%F2fenshuajiang%F2data%F2config%F2<hash>.r
 ```
 
-- `%F2` 是 GBK 全角斜杠 `／`(A3F2)被拆开后的残留,实际用作 `/`;
 - 逻辑路径取 `/data/` 之后的部分,例如 `config/<hash>.r`;
 - 缓存根里通常还有 `filelist_<ver>.r`、`media.inf` 等。
+
+> DeepSeek v4.1f 认为这也在用 GBK？这是否有些过于离谱，需要调研
 
 `gammaray unpack <cache>` 会自动识别这种目录,展开到临时 assets 视图后
 按 filelist 解包;`--base <APK assets>` 可先铺基础资源再叠加缓存。
